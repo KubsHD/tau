@@ -1,0 +1,21 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(splatter)
+include(FetchContent)
+
+set(BUILD_SHARED_LIBS FALSE)
+set(FETCHCONTENT_UPDATES_DISCONNECTED ON CACHE STRING "don't update every time")
+set(CPPWINRT_REQUIRED_COMPILER_FLAGS "/std:c++latest /await")
+
+FetchContent_Declare(
+    enet
+    GIT_REPOSITORY https://github.com/lsalzman/enet
+)
+
+FetchContent_MakeAvailable(enet)
+
+include_directories("${PROJECT_BINARY_DIR}/_deps/enet-src/include")
+include_directories("${PROJECT_SOURCE_DIR}")
+
+add_subdirectory(relay)
+add_subdirectory(game)
