@@ -16,13 +16,13 @@ int main(int argc, char* argv[])
     ENetAddress hostAddress;
     hostAddress.host = ENET_HOST_ANY;
     hostAddress.port = 7788;
-    ENetHost* host = enet_host_create(&hostAddress, 100, 2, 0, 0);
+    ENetHost* host = enet_host_create(&hostAddress, 100, 10, 0, 0);
 
     printf("Listening on port %d\n", (int)hostAddress.port);
 
     while (true) {
         ENetEvent evt;
-        if (enet_host_service(host, &evt, 100) > 0) {
+        if (enet_host_service(host, &evt, 1000) > 0) {
             char ip[40];
             enet_address_get_host_ip(&evt.peer->address, ip, 40);
 
@@ -36,19 +36,17 @@ int main(int argc, char* argv[])
 
                 for (auto peer : g_peers) {
                     Peer ps;
+                    ps.id = 0;
                     ps.ip = peer->address.host;
                     ps.port = peer->address.port;
                     p.peers.push_back(ps);
                 }
 
+                printf("Sending PeerListPacket to %d peers\n", p.peers_count);
+
                 auto mem = p.serialize();
 
-                
-                PeerListPacket test;
-                test.deserialize(mem);
-
-
-                ENetPacket* packet = enet_packet_create(mem, sizeof(mem), ENET_PACKET_FLAG_RELIABLE);
+                ENetPacket* packet = enet_packet_create(mem,4096, ENET_PACKET_FLAG_RELIABLE);
                 enet_host_broadcast(host, 0, packet);
 
 

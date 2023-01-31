@@ -53,9 +53,6 @@ struct PeerListPacket {
         cursor += sizeof(uint32_t);
 
         for (auto peer : peers) {
-
-            peer.id = 0;
-
             memcpy(data + cursor, &peer.id, sizeof(uint32_t));
             cursor += sizeof(uint32_t);
 
@@ -82,7 +79,6 @@ struct PeerListPacket {
         for (int i = 0; i < peers_count; i++) {
 
             Peer peer;
-            peer.id = i;
 
             memcpy(&peer.id, data + cursor, sizeof(uint32_t));
             cursor += sizeof(uint32_t);
