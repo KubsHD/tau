@@ -35,7 +35,7 @@ set_source_files_properties(game_SRC PROPERTIES LANGUAGE CXX)
 
 # link libraries
 
-set(game_libs enet "ws2_32" "winmm")
+set(game_libs enet "ws2_32" "winmm" SDL2-static SDL2main)
 
 if(NOT WINDOWS_STORE)
     list(APPEND game_libs "SDL2main") # don't link SDL2main on xbox since it uses a c++ entrypoint

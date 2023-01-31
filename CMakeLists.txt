@@ -14,6 +14,14 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(enet)
 
+FetchContent_Declare(
+    SDL
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL
+    GIT_TAG release-2.24.1
+)
+
+FetchContent_MakeAvailable(SDL)
+
 include_directories("${PROJECT_BINARY_DIR}/_deps/enet-src/include")
 include_directories("${PROJECT_SOURCE_DIR}")
 
