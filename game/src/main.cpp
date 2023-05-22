@@ -1,135 +1,105 @@
 #define _CRT_SECURE_NO_WARNINGS
 
+#define STB_IMAGE_IMPLEMENTATION
+
 #include <SDL.h>
 #include <enet/enet.h>
 #include <vector>
-#include <shared/packet.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string>
+#include "lib/stb_image.h"
 
-static std::vector<ENetPeer*> g_remote_peers;
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 720
+
+#define ASSERT_SDL(cond)    if(!(cond)){fprintf(stderr, "SDL broke: %s\n", SDL_GetError());return EXIT_FAILURE;}
+
+#define ERR(source)                                                                                                    \
+	(fprintf(stderr, "%s:%d\n", __FILE__, __LINE__), perror(source), exit(EXIT_FAILURE))
+
+SDL_Texture* loadTexture(std::string, SDL_Renderer*);
+
+//static std::vector<ENetPeer*> g_remote_peers;
 
 int main(int argc, char* argv[])
 {
-    if (enet_initialize() != 0) {
-        return EXIT_FAILURE;
-    }
+    SDL_Window* window = NULL;
+    SDL_Renderer* renderer = NULL;
+    SDL_Texture* t1 = NULL;
 
-    ENetAddress hostAddress;
-    hostAddress.host = ENET_HOST_ANY;
-    hostAddress.port = ENET_PORT_ANY;
-    ENetHost* host = enet_host_create(&hostAddress, 100, 10, 0, 0);
+    ASSERT_SDL(SDL_Init(SDL_INIT_VIDEO) >= 0)
 
-    ENetAddress serverAddress;
-    enet_address_set_host(&serverAddress, "127.0.0.1");
-    serverAddress.port = 7788;
-    ENetPeer* serverPeer = enet_host_connect(host, &serverAddress, 2, 0);
+    //Create window
+    window = SDL_CreateWindow("Splatter", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                              SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 
-    printf("Started game: %d : %d\n", (int)host->address.host, (int)host->address.port);
+    ASSERT_SDL(window != NULL)
 
-    while (true) {
-        ENetEvent evt;
-        if (enet_host_service(host, &evt, 1000) > 0) {
-            char ip[40];
-            enet_address_get_host_ip(&evt.peer->address, ip, 40);
+    //Create renderer
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-            if (evt.type == ENET_EVENT_TYPE_CONNECT) {
-                printf("Connected to relay %s:%d\n", ip, (int)evt.peer->address.port);
+    ASSERT_SDL(renderer != NULL)
 
-            } else if (evt.type == ENET_EVENT_TYPE_DISCONNECT) {
-                printf("Disconnected from peer %s:%d\n", ip, (int)evt.peer->address.port);
+    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
-                auto it = std::find(g_remote_peers.begin(), g_remote_peers.end(), evt.peer);
-                if (it != g_remote_peers.end()) {
-                    g_remote_peers.erase(it);
-                }
+    SDL_Texture* burgir = loadTexture("./../../game/data/burgir.png", renderer);
 
-            } else if (evt.type == ENET_EVENT_TYPE_RECEIVE) {
+    bool quit = false;
+    SDL_Event e;
 
-                auto pType = determinePacketType(evt.packet->data);
-
-                switch (pType) {
-                case PeerList: {
-                    char* p = (char*)evt.packet->data;
-
-                    PeerListPacket packet;
-                    packet.deserialize(p);
-
-                    printf("Recieved new PeerListPacket containing %d peers\n", packet.peers_count);
-
-
-
-                    for (auto peer : packet.peers) {
-                        printf("Peer %d: %d : %d\n", peer.id, peer.ip, peer.port);
-
-                        char peerListIp[40];
-                        char thisGameIp[40];
-
-                        ENetAddress addr;
-                        addr.host = peer.ip;
-                        addr.port = peer.port;
-
-                        enet_address_get_host_ip(&addr, peerListIp, 40);
-
-                        enet_address_get_host_ip(&host->address, thisGameIp, 40);
-
-                        bool already_connected = false;
-
-                        for (ENetPeer* c_peer : g_remote_peers)
-                        {
-                            // already connected
-                            if (c_peer->address.host == host->address.host && c_peer->address.port == host->address.port)
-                                already_connected = true;
-                        }
-
-                        if (already_connected)
-                            continue;
-
-                        // don't connect to self
-                        if (strcmp(peerListIp, "127.0.0.1") == 0 && peer.port == host->address.port)
-                            continue;
-
-                        ENetPeer* peerRemote = enet_host_connect(host, &addr, 2, 0);
-                        g_remote_peers.emplace_back(peerRemote);
-                    }
-
-                    // disconnect from missing peers
-
-                    //for (auto c_peer : g_remote_peers) {
-                    //    for (auto peer : packet.peers) {
-                    //        if (peer.ip == c_peer->address.host && peer.port == c_peer->address.port)
-                    //        {
-
-                    //        } else {
-                    //        // disconnect peer
-                    //            enet_peer_disconnect(c_peer, 0);
-                    //            g_remote_peers.erase(std::find(g_remote_peers.begin(), g_remote_peers.end(), c_peer));
-                    //        }
-                    //    }
-                    //}
-
-                    break;
-                }
-                case NewPeer:
-                    break;
-                case RemovePeer:
-                    break;
-                case PlayerPosition:
-                    break;
-                default:
-                    break;
-                }
-            }
-
-        } 
-        else
+    while(!quit)
+    {
+        //Handle events
+        while(SDL_PollEvent(&e) != 0)
         {
-            printf("... (%d remote peers)\n", (int)g_remote_peers.size());
-            for (auto peer : g_remote_peers) {
+            if(e.type == SDL_QUIT)
+            {
+                quit = true;
             }
         }
+
+        //Clear screen
+        SDL_RenderClear(renderer);
+
+        //Render texture
+        SDL_RenderCopy(renderer, burgir, NULL, NULL);
+
+        //Update screen
+        SDL_RenderPresent(renderer);
     }
 
-    enet_deinitialize();
-    return 0;
+    return EXIT_SUCCESS;
 }
+
+
+SDL_Texture* loadTexture(std::string path, SDL_Renderer* renderer)
+{
+    int w;
+    int h;
+
+    int channels;
+
+    const char* asset_path = path.c_str();
+
+    stbi_uc* data = stbi_load(asset_path, &w, &h, &channels, 0);
+
+    delete asset_path;
+
+    if (data == NULL)
+    {
+        ERR("Couldn't load texture");
+    }
+
+    int format = channels == STBI_rgb ? SDL_PIXELFORMAT_RGB24 : SDL_PIXELFORMAT_RGBA32;
+
+
+    SDL_Texture* tex = SDL_CreateTexture(renderer, format, SDL_TEXTUREACCESS_STATIC, w, h);
+    SDL_UpdateTexture(tex, NULL, (const void*)data, w * channels);
+    SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+
+    stbi_image_free(data);
+
+    return tex;
+}
+

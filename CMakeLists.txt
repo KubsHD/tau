@@ -25,5 +25,5 @@ FetchContent_MakeAvailable(SDL)
 include_directories("${PROJECT_BINARY_DIR}/_deps/enet-src/include")
 include_directories("${PROJECT_SOURCE_DIR}")
 
-add_subdirectory(relay)
+#add_subdirectory(relay)
 add_subdirectory(game)

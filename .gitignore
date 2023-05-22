@@ -17,3 +17,6 @@ out/
 
 !deps/fmod/**
 !deps/eos/**
+
+cmake-build-debug/
+.idea
