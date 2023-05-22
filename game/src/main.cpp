@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
     SDL_Renderer* renderer = NULL;
     SDL_Texture* t1 = NULL;
 
-    ASSERT_SDL(SDL_Init(SDL_INIT_VIDEO) >= 0)
+    ASSERT_SDL(SDL_Init(SDL_INIT_EVERYTHING) >= 0)
 
     //Create window
     window = SDL_CreateWindow("Splatter", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -83,8 +83,6 @@ SDL_Texture* loadTexture(std::string path, SDL_Renderer* renderer)
     const char* asset_path = path.c_str();
 
     stbi_uc* data = stbi_load(asset_path, &w, &h, &channels, 0);
-
-    delete asset_path;
 
     if (data == NULL)
     {
