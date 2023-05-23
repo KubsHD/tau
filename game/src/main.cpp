@@ -9,6 +9,11 @@
 #include <stdio.h>
 #include <string>
 #include "lib/stb_image.h"
+#include "Texture.h"
+#include "Player.h"
+#include "Bullet.h"
+#include <glm/glm.hpp>
+#include <algorithm>
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
@@ -43,13 +48,20 @@ int main(int argc, char* argv[])
 
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
-    SDL_Texture* burgir = loadTexture("./../../game/data/burgir.png", renderer);
+    Texture* burgir = new Texture("./../../game/data/burgir.png", renderer);
+    Texture* cookie = new Texture("./../../game/data/cookie.png", renderer);
+
+    std::vector<Bullet*> bullets;
+
+    Player* gamer = new Player(burgir, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
 
     bool quit = false;
     SDL_Event e;
 
     while(!quit)
     {
+        Uint64 start = SDL_GetPerformanceCounter();
+
         //Handle events
         while(SDL_PollEvent(&e) != 0)
         {
@@ -57,47 +69,54 @@ int main(int argc, char* argv[])
             {
                 quit = true;
             }
+            else if(e.type == SDL_MOUSEBUTTONDOWN)
+            {
+                int x, y;
+                SDL_GetMouseState(&x,&y);
+                bullets.push_back(new Bullet(x, y, cookie, gamer));
+            }
         }
+
+        const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
+
+        gamer->Move(currentKeyStates);
 
         //Clear screen
         SDL_RenderClear(renderer);
 
-        //Render texture
-        SDL_RenderCopy(renderer, burgir, NULL, NULL);
+        gamer->Render(renderer);
+
+        glm::vec2 b_pos;
+
+        auto it = std::remove_if(bullets.begin(), bullets.end(), [](Bullet* b){
+            glm::vec2 b_pos;
+            b_pos = b->get_position();
+            if(b_pos.x < 0 - b->rect.w || b_pos.x > SCREEN_WIDTH
+               || b_pos.y < 0 - b->rect.h || b_pos.y > SCREEN_HEIGHT)
+            {
+                return true;
+            }
+            return false;
+        });
+
+        bullets.erase(it, bullets.end());
+
+        for(auto b : bullets)
+        {
+            b->Move();
+            b->Render(renderer);
+        }
 
         //Update screen
         SDL_RenderPresent(renderer);
+
+        Uint64 end = SDL_GetPerformanceCounter();
+
+        float elapsedMS = (end - start) / (float)SDL_GetPerformanceFrequency() * 1000.0f;
+
+        SDL_Delay(floor(16.666f - elapsedMS));
     }
 
     return EXIT_SUCCESS;
-}
-
-
-SDL_Texture* loadTexture(std::string path, SDL_Renderer* renderer)
-{
-    int w;
-    int h;
-
-    int channels;
-
-    const char* asset_path = path.c_str();
-
-    stbi_uc* data = stbi_load(asset_path, &w, &h, &channels, 0);
-
-    if (data == NULL)
-    {
-        ERR("Couldn't load texture");
-    }
-
-    int format = channels == STBI_rgb ? SDL_PIXELFORMAT_RGB24 : SDL_PIXELFORMAT_RGBA32;
-
-
-    SDL_Texture* tex = SDL_CreateTexture(renderer, format, SDL_TEXTUREACCESS_STATIC, w, h);
-    SDL_UpdateTexture(tex, NULL, (const void*)data, w * channels);
-    SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
-
-    stbi_image_free(data);
-
-    return tex;
 }
 

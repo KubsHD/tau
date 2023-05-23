@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
+SET(CMAKE_CXX_STANDARD 20)
 
 project(splatter)
 include(FetchContent)
@@ -21,6 +22,15 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(SDL)
+
+#glm
+FetchContent_Declare(
+        glm
+        GIT_REPOSITORY https://github.com/g-truc/glm
+        GIT_TAG master
+)
+
+FetchContent_MakeAvailable(glm)
 
 include_directories("${PROJECT_BINARY_DIR}/_deps/enet-src/include")
 include_directories("${PROJECT_SOURCE_DIR}")

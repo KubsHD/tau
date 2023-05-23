@@ -35,7 +35,7 @@ set_source_files_properties(game_SRC PROPERTIES LANGUAGE CXX)
 
 # link libraries
 
-set(game_libs enet SDL2-static SDL2main)
+set(game_libs enet SDL2-static SDL2main glm)
 
 if(NOT WINDOWS_STORE)
     list(APPEND game_libs "SDL2main") # don't link SDL2main on xbox since it uses a c++ entrypoint
@@ -52,7 +52,7 @@ else()
     add_executable(splatter WIN32
         ${game_SRC}
         ${APP_ICON_RESOURCE_WINDOWS}
-    )
+            src/Texture.cpp src/Texture.h src/GameObject.cpp src/GameObject.h src/Player.cpp src/Player.h src/Bullet.cpp src/Bullet.h)
 endif()
 
 target_link_libraries(splatter PRIVATE ${game_libs})
