@@ -14,6 +14,7 @@
 #include "Bullet.h"
 #include <glm/glm.hpp>
 #include <algorithm>
+#include <enet/enet.h>
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
@@ -29,6 +30,23 @@ SDL_Texture* loadTexture(std::string, SDL_Renderer*);
 
 int main(int argc, char* argv[])
 {
+
+    //enet
+    enet_initialize();
+
+    ENetAddress address;
+    ENetHost* server;
+
+    address.host = ENET_HOST_ANY;
+    address.port = 1234;
+
+    server = enet_host_create(&address, 2, 2, 0, 0);
+
+    ENetHost* client;
+
+    client = enet_host_create(NULL, 1, 2, 0, 0);
+
+
     SDL_Window* window = NULL;
     SDL_Renderer* renderer = NULL;
     SDL_Texture* t1 = NULL;
