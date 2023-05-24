@@ -16,6 +16,7 @@
 #include <glm/glm.hpp>
 #include <algorithm>
 #include <enet/enet.h>
+#include <thread>
 
 #define SCREEN_WIDTH 600//1280
 #define SCREEN_HEIGHT 400//720
@@ -28,6 +29,48 @@
 SDL_Texture* loadTexture(std::string, SDL_Renderer*);
 
 //static std::vector<ENetPeer*> g_remote_peers;
+
+const char* get_real_path(const char* vpath)
+{
+    
+#if DEBUG
+#if APPLE
+	const char* path_prefix = "./../../game/data/";
+#else
+	const char* path_prefix = "../../../../game/data/";
+#endif
+
+#else
+#if VITA
+	path_prefix = "app0:data/";
+#elif XBOX
+	char* base = SDL_WinRTGetFSPathUTF8(SDL_WINRT_PATH_INSTALLED_LOCATION);
+	int size = snprintf(NULL, 0, "%s/data/", base);
+	char* buf = malloc(size + 1);
+	sprintf(buf, "%s/data/", base);
+	path_prefix = buf;
+#elif APPLE
+
+	char* base = SDL_GetBasePath();
+	int size = snprintf(NULL, 0, "%sdata/", base);
+	char* buf = (char*)malloc(size + 1);
+	sprintf(buf, "%sdata/", base);
+	path_prefix = buf;
+#else
+	path_prefix = "data/";
+#endif
+	printf("asset: path: %s\n", path_prefix);
+#endif
+
+	size_t needed = snprintf(NULL, 0, "%s%s", path_prefix, vpath) + 1;
+
+	char* tmp = (char*)calloc(needed, 1);
+
+	snprintf(tmp, needed, "%s%s", path_prefix, vpath);
+
+    return tmp;
+}
+
 
 int main(int argc, char* argv[])
 {
@@ -78,9 +121,9 @@ int main(int argc, char* argv[])
 
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
-    Texture* burgir = new Texture("./../../game/data/burgir.png", renderer);
-    Texture* steak = new Texture("./../../game/data/steak.png", renderer);
-    Texture* cookie = new Texture("./../../game/data/cookie.png", renderer);
+    Texture* burgir = new Texture(get_real_path("burgir.png"), renderer);
+    Texture* steak = new Texture(get_real_path("steak.png"), renderer);
+    Texture* cookie = new Texture(get_real_path("cookie.png"), renderer);
 
     std::vector<Bullet*> bullets;
 
@@ -172,7 +215,9 @@ int main(int argc, char* argv[])
 
         float elapsedMS = (end - start) / (float)SDL_GetPerformanceFrequency() * 1000.0f;
 
-        SDL_Delay(floor(16.666f - elapsedMS));
+        auto delay = floor(16.666f - elapsedMS);
+
+        SDL_Delay(delay < 16.666f && delay > 0 ? delay : 16.666f);
     }
 
     return EXIT_SUCCESS;
