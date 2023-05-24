@@ -37,6 +37,7 @@ public:
 
 class EnetServer : Server {
 private:
+    static bool enet_initialized;
     ENetHost* server = NULL;
     ENetAddress address;
     ENetEvent event;
@@ -66,17 +67,17 @@ public:
             enet_peer_send(client, 0, packet);
         }
         enet_host_flush (server);
-        for(ENetPacket* packet_ : packets)
-        {
-            enet_packet_destroy(packet_);
-        }
+//        for(ENetPacket* packet_ : packets)
+//        {
+//            enet_packet_destroy(packet_);
+//        }
         return true;
     }
     char* receive(int* size) override
     {
         if(packet != NULL)
         {
-            enet_packet_destroy(packet);
+            //enet_packet_destroy(packet);
             packet = NULL;
         }
         while (enet_host_service (server, &event, 1000) > 0)
@@ -85,7 +86,10 @@ public:
             {
                 case ENET_EVENT_TYPE_RECEIVE:
                     packet = event.packet;
-                    *size = packet->dataLength;
+                    if(size != NULL)
+                    {
+                        *size = packet->dataLength;
+                    }
                     return (char* )packet->data;
                     break;
                 case ENET_EVENT_TYPE_CONNECT:
@@ -151,7 +155,7 @@ public:
         packet = enet_packet_create (buf, size, 0);
         enet_peer_send (peer, 0, packet);
         enet_host_flush (client);
-        enet_packet_destroy(packet);
+        //enet_packet_destroy(packet);
         packet = NULL;
         return true;
     }
@@ -160,16 +164,19 @@ public:
     {
         if(packet != NULL)
         {
-            enet_packet_destroy(packet);
+            //enet_packet_destroy(packet);
             packet = NULL;
         }
-        while (enet_host_service (client, &event, 1000) > 0)
+        while (enet_host_service (client, &event, 17) > 0)
         {
             switch (event.type)
             {
                 case ENET_EVENT_TYPE_RECEIVE:
                     packet = event.packet;
-                    *size = packet->dataLength;
+                    if(size != NULL)
+                    {
+                        *size = packet->dataLength;
+                    }
                     return (char* )packet->data;
                     break;
                 default:

@@ -12,12 +12,13 @@
 #include "Texture.h"
 #include "Player.h"
 #include "Bullet.h"
+#include "NetworkLayer.h"
 #include <glm/glm.hpp>
 #include <algorithm>
 #include <enet/enet.h>
 
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 720
+#define SCREEN_WIDTH 600//1280
+#define SCREEN_HEIGHT 400//720
 
 #define ASSERT_SDL(cond)    if(!(cond)){fprintf(stderr, "SDL broke: %s\n", SDL_GetError());return EXIT_FAILURE;}
 
@@ -34,20 +35,28 @@ int main(int argc, char* argv[])
     //enet
     enet_initialize();
 
-    ENetHost* client;
-
-    client = enet_host_create(NULL, 1, 2, 0, 0);
-
-    if(argv[1] == "server")
+    if(strcmp(argv[1], "server") == 0)
     {
-        ENetAddress address;
-        ENetHost* server;
-
-        address.host = ENET_HOST_ANY;
-        address.port = 1234;
-
-        server = enet_host_create(&address, 2, 2, 0, 0);
+        EnetServer* s = new EnetServer();
+        s->init("127.0.0.1", "1234", 2);
+        char *data;
+        int size;
+        while (1)
+        {
+            data = s->receive(&size);
+            if(data == NULL)
+                continue;
+            s->send_to_all(data, size);
+        }
+        return EXIT_SUCCESS;
     }
+
+    EnetClient* c = new EnetClient();
+    c->connect("127.0.0.1", "1234");
+
+    char* my_data = (char*)calloc(1, sizeof(SDL_Rect) + sizeof(char));
+    my_data[0] = argv[1][0];
+    char* their_data;
 
 
     SDL_Window* window = NULL;
@@ -70,11 +79,22 @@ int main(int argc, char* argv[])
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
     Texture* burgir = new Texture("./../../game/data/burgir.png", renderer);
+    Texture* steak = new Texture("./../../game/data/steak.png", renderer);
     Texture* cookie = new Texture("./../../game/data/cookie.png", renderer);
 
     std::vector<Bullet*> bullets;
 
-    Player* gamer = new Player(burgir, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+    Player* gamer;
+    Player* other_gamer;
+    if(argv[1][0] == 'a')
+    {
+        gamer = new Player(burgir, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+        other_gamer = new Player(steak, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+    } else
+    {
+        other_gamer = new Player(burgir, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+        gamer = new Player(steak, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+    }
 
     bool quit = false;
     SDL_Event e;
@@ -98,14 +118,31 @@ int main(int argc, char* argv[])
             }
         }
 
+        //xd
+        memcpy(my_data + 1, &gamer->rect, sizeof(SDL_Rect));
+        c->send(my_data, sizeof(SDL_Rect) + sizeof(char));
+        //xd
+
         const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
 
         gamer->Move(currentKeyStates);
+
+
+        while (1)
+        {
+            their_data = c->receive(NULL);
+            if(their_data != NULL && their_data[0] != argv[1][0])
+            {
+                memcpy(&other_gamer->rect, their_data + 1, sizeof(SDL_Rect));
+                break;
+            }
+        }
 
         //Clear screen
         SDL_RenderClear(renderer);
 
         gamer->Render(renderer);
+        other_gamer->Render(renderer);
 
         glm::vec2 b_pos;
 
