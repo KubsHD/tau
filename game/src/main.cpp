@@ -34,17 +34,20 @@ int main(int argc, char* argv[])
     //enet
     enet_initialize();
 
-    ENetAddress address;
-    ENetHost* server;
-
-    address.host = ENET_HOST_ANY;
-    address.port = 1234;
-
-    server = enet_host_create(&address, 2, 2, 0, 0);
-
     ENetHost* client;
 
     client = enet_host_create(NULL, 1, 2, 0, 0);
+
+    if(argv[1] == "server")
+    {
+        ENetAddress address;
+        ENetHost* server;
+
+        address.host = ENET_HOST_ANY;
+        address.port = 1234;
+
+        server = enet_host_create(&address, 2, 2, 0, 0);
+    }
 
 
     SDL_Window* window = NULL;
