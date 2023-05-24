@@ -63,7 +63,7 @@ public:
         std::vector<ENetPacket*> packets;
         for(ENetPeer* client : clients)
         {
-            packets.push_back(enet_packet_create(buf, size, 0));
+            packets.push_back(enet_packet_create(buf, size, ENET_PACKET_FLAG_NO_ALLOCATE));
             enet_peer_send(client, 0, packet);
         }
         enet_host_flush (server);
@@ -152,7 +152,7 @@ public:
             enet_packet_destroy(packet);
             packet = NULL;
         }
-        packet = enet_packet_create (buf, size, 0);
+        packet = enet_packet_create (buf, size, ENET_PACKET_FLAG_NO_ALLOCATE);
         enet_peer_send (peer, 0, packet);
         enet_host_flush (client);
         //enet_packet_destroy(packet);
