@@ -21,7 +21,7 @@ void Server::Run()
 		data = s->receive();
 		if (data.is_empty())
 			continue;
-		s->broadcast(data.data, data.size);
+		s->broadcast(data.data.data(), data.size);
 	}
 
 	return;

@@ -1,3 +1,4 @@
+#pragma once
 #define _CRT_SECURE_NO_WARNINGS
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -64,7 +65,6 @@ SDL_Texture* loadTexture(std::string, SDL_Renderer*);
 
 const char* get_real_path(const char* vpath)
 {
-
 #if DEBUG
 #if APPLE
     const char* path_prefix = "./../../game/data/";
@@ -120,6 +120,27 @@ namespace spt
 
 		return pa;
 	}
+}
+
+struct player_move_packet {
+    char type;
+    int player_id;
+    int x;
+    int y;
+};
+
+player_move_packet serialize_player_move_packet(Player p)
+{
+    struct player_move_packet packet = {
+            '0', 0, p.rect.x, p.rect.y
+    };
+    return packet;
+}
+
+void handle_player_move_packet(player_move_packet* p, Player player)
+{
+    player.rect.x = p->x;
+    player.rect.y = p->y;
 }
 
 int main(int argc, char* argv[])
@@ -206,8 +227,9 @@ int main(int argc, char* argv[])
         }
 
         //xd
-        memcpy(my_data + 1, &gamer->rect, sizeof(SDL_Rect));
-        c->send(my_data, sizeof(SDL_Rect) + sizeof(char));
+        //memcpy(my_data + 1, &gamer->rect, sizeof(SDL_Rect));
+        auto x = serialize_player_move_packet(*gamer);
+        c->send((char*)&x, sizeof(player_move_packet));
         //xd
 
 
@@ -216,15 +238,25 @@ int main(int argc, char* argv[])
 
         gamer->Move(currentKeyStates);
 
+        char* rec;
 
-        while (1)
-        {
-            their_data = c->receive();
-            switch (their_data.type)
-            {
+        do {
+            rec = c->receive_as_bytes();
+        } while (rec == NULL);
 
-            }
+        switch (rec[0]) {
+            case '0':
+                handle_player_move_packet((player_move_packet*)rec, *other_gamer);
         }
+
+//        while (1)
+//        {
+//            //their_data = c->receive();
+//            switch (their_data.type)
+//            {
+//
+//            }
+//        }
 
         //Clear screen
         SDL_RenderClear(renderer);

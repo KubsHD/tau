@@ -8,6 +8,7 @@
 #include <vector>
 #include "enet/enet.h"
 #include <iostream>
+#include "Player.h"
 
 struct Packet {
     int type;
@@ -29,28 +30,32 @@ struct Packet {
 
 };
 
+
 namespace net {
-    std::vector<char> serialize_packet(Packet& p)
-    {
-        std::vector<char> data;
-        data.push_back(p.type);
-		data.push_back(p.size);
-		data.push_back(p.size);
 
-		for (int i = 0; i < p.size; i++)
-		{
-			data.push_back(p.data[i]);
-		}
 
-		return data;
-    }
 
-    Packet deserialize_packet(std::vector<char> data)
-    {
-        int curr_byte = 0;
-
-        Packet p;
-    }
+//    std::vector<char> serialize_packet(Packet& p)
+//    {
+//        std::vector<char> data;
+//        data.push_back(p.type);
+//		data.push_back(p.size);
+//		data.push_back(p.size);
+//
+//		for (int i = 0; i < p.size; i++)
+//		{
+//			data.push_back(p.data[i]);
+//		}
+//
+//		return data;
+//    }
+//
+//    Packet deserialize_packet(std::vector<char> data)
+//    {
+//        int curr_byte = 0;
+//
+//        Packet p;
+//    }
 }
 
 class SocketClient {
@@ -80,7 +85,7 @@ public:
     /// Sends data to specified client
     ///<[in] buffer with binary data
     ///<[in] size of the buffer
-	virtual bool send(ENetPeer* target, char* buf, int size);
+	//virtual bool send(ENetPeer* target, char* buf, int size);
 
     /// receive data
     ///<[in,out] number of bytes to be read \n and later size of the returned buffer
@@ -151,6 +156,31 @@ public:
             }
         }
         return Packet();
+    }
+
+    char* receive_as_bytes()
+    {
+        if(packet != NULL)
+        {
+            //enet_packet_destroy(packet);
+            packet = NULL;
+        }
+        while (enet_host_service (server, &event, 1000) > 0)
+        {
+            switch (event.type)
+            {
+                case ENET_EVENT_TYPE_RECEIVE:
+                    packet = event.packet;
+                    return (char*)packet->data;
+                    break;
+                case ENET_EVENT_TYPE_CONNECT:
+                    clients.push_back(event.peer);
+                    break;
+                default:
+                    break;
+            }
+        }
+        return NULL;
     }
 };
 
@@ -224,13 +254,35 @@ public:
             {
                 case ENET_EVENT_TYPE_RECEIVE:
                     packet = event.packet;
-                    return Packet(std::vector<char>((char*)packet->data, (char*)packet->data + packet->dataLength);
+                    return Packet(std::vector<char>((char*)packet->data, (char*)packet->data + packet->dataLength));
                     break;
                 default:
                     break;
             }
         }
         return Packet();
+    }
+
+    char* receive_as_bytes()
+    {
+        if(packet != NULL)
+        {
+            //enet_packet_destroy(packet);
+            packet = NULL;
+        }
+        while (enet_host_service (client, &event, 0) > 0)
+        {
+            switch (event.type)
+            {
+                case ENET_EVENT_TYPE_RECEIVE:
+                    packet = event.packet;
+                    return (char*)packet->data;
+                    break;
+                default:
+                    break;
+            }
+        }
+        return NULL;
     }
 };
 

@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.16)
 SET(CMAKE_CXX_STANDARD 20)
 
+if (APPLE)
+    add_compile_definitions(APPLE)
+
+endif ()
+
 project(splatter)
 include(FetchContent)
 
