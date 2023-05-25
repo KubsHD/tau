@@ -20,6 +20,7 @@
 #include <thread>
 #include <iostream>
 #include <server/Server.h>
+#include <PacketTypes.h>
 
 struct HelloPacketReq{
     // name
