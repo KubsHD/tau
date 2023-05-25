@@ -7,8 +7,53 @@
 
 #include <vector>
 #include "enet/enet.h"
+#include <iostream>
 
-class Client {
+struct Packet {
+    int type;
+	int size;
+	std::vector<char> data;
+
+	Packet(std::vector<char> d) : data(d), size(d.size()) {}
+    Packet()
+    {
+        size = 0;
+        std::cout << "Recieved empty packet!" << std::endl;
+    }
+
+    bool is_empty()
+    {
+        return size == 0;
+    }
+
+
+};
+
+namespace net {
+    std::vector<char> serialize_packet(Packet& p)
+    {
+        std::vector<char> data;
+        data.push_back(p.type);
+		data.push_back(p.size);
+		data.push_back(p.size);
+
+		for (int i = 0; i < p.size; i++)
+		{
+			data.push_back(p.data[i]);
+		}
+
+		return data;
+    }
+
+    Packet deserialize_packet(std::vector<char> data)
+    {
+        int curr_byte = 0;
+
+        Packet p;
+    }
+}
+
+class SocketClient {
 public:
     /// connect - connects the client to host with provided address
     virtual bool connect(const char* address_string, ///<[in] any valid address in form x.x.x.x
@@ -19,23 +64,30 @@ public:
                       int size ///<[in] size of the buffer
                       ) = 0;
     /// receive data
-    virtual char* receive(int* size ///<[in,out] number of bytes to be read \n and later size of the returned buffer
-    ) = 0;
+    virtual Packet receive() = 0;
 };
 
-class Server {
+class SocketServer {
 public:
     virtual bool init(const char* address_string, const char* port_string, int max_clients) = 0;
+    
+
     /// send data to host to which the client is connected
-    virtual bool send_to_all(char* buf, ///<[in] buffer with binary data
-                      int size ///<[in] size of the buffer
-    ) = 0;
+    ///<[in] buffer with binary data 
+    ///<[in] size of the buffer
+    virtual bool broadcast(char* buf, int size) = 0;
+
+    /// Sends data to specified client
+    ///<[in] buffer with binary data
+    ///<[in] size of the buffer
+	virtual bool send(ENetPeer* target, char* buf, int size);
+
     /// receive data
-    virtual char* receive(int* size ///<[in,out] number of bytes to be read \n and later size of the returned buffer
-    ) = 0;
+    ///<[in,out] number of bytes to be read \n and later size of the returned buffer
+    virtual Packet receive() = 0;
 };
 
-class EnetServer : Server {
+class EnetServer : SocketServer {
 private:
     static bool enet_initialized;
     ENetHost* server = NULL;
@@ -58,7 +110,7 @@ public:
             return false;
         }
     }
-    bool send_to_all(char* buf, int size) override
+    bool broadcast(char* buf, int size) override
     {
         std::vector<ENetPacket*> packets;
         for(ENetPeer* client : clients)
@@ -73,7 +125,10 @@ public:
 //        }
         return true;
     }
-    char* receive(int* size) override
+    
+   
+
+    Packet receive() override
     {
         if(packet != NULL)
         {
@@ -86,11 +141,7 @@ public:
             {
                 case ENET_EVENT_TYPE_RECEIVE:
                     packet = event.packet;
-                    if(size != NULL)
-                    {
-                        *size = packet->dataLength;
-                    }
-                    return (char* )packet->data;
+                    return Packet(std::vector<char>((char*)packet->data, (char*)packet->data + packet->dataLength));
                     break;
                 case ENET_EVENT_TYPE_CONNECT:
                     clients.push_back(event.peer);
@@ -99,11 +150,11 @@ public:
                     break;
             }
         }
-        return NULL;
+        return Packet();
     }
 };
 
-class EnetClient : Client {
+class EnetClient : SocketClient {
 private:
     ENetHost* client = NULL;
     ENetEvent event;
@@ -160,30 +211,26 @@ public:
         return true;
     }
 
-    char* receive(int *size) override
+    Packet receive() override
     {
         if(packet != NULL)
         {
             //enet_packet_destroy(packet);
             packet = NULL;
         }
-        while (enet_host_service (client, &event, 17) > 0)
+        while (enet_host_service (client, &event, 0) > 0)
         {
             switch (event.type)
             {
                 case ENET_EVENT_TYPE_RECEIVE:
                     packet = event.packet;
-                    if(size != NULL)
-                    {
-                        *size = packet->dataLength;
-                    }
-                    return (char* )packet->data;
+                    return Packet(std::vector<char>((char*)packet->data, (char*)packet->data + packet->dataLength);
                     break;
                 default:
                     break;
             }
         }
-        return NULL;
+        return Packet();
     }
 };
 

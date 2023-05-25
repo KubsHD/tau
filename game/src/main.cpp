@@ -14,9 +14,40 @@
 #include "Bullet.h"
 #include "NetworkLayer.h"
 #include <glm/glm.hpp>
+#include <memory>
 #include <algorithm>
 #include <enet/enet.h>
 #include <thread>
+#include <iostream>
+#include <server/Server.h>
+
+struct HelloPacketReq{
+    // name
+};
+
+struct HelloPacketRes {
+	// id
+};
+
+namespace en {
+
+	template<typename T>
+	using ref = std::shared_ptr<T>;
+	template<typename T, typename ... Args>
+	constexpr ref<T> create_ref(Args&& ... args)
+	{
+		return std::make_shared<T>(std::forward<Args>(args)...);
+	}
+
+	template<typename T>
+	using scope = std::unique_ptr<T>;
+	template<typename T, typename ... Args>
+	constexpr scope<T> create_scope(Args&& ... args)
+	{
+		return std::make_unique<T>(std::forward<Args>(args)...);
+	}
+}
+
 
 #define SCREEN_WIDTH 600//1280
 #define SCREEN_HEIGHT 400//720
@@ -32,77 +63,86 @@ SDL_Texture* loadTexture(std::string, SDL_Renderer*);
 
 const char* get_real_path(const char* vpath)
 {
-    
+
 #if DEBUG
 #if APPLE
-	const char* path_prefix = "./../../game/data/";
+    const char* path_prefix = "./../../game/data/";
 #else
-	const char* path_prefix = "../../../../game/data/";
+    const char* path_prefix = "../../../../game/data/";
 #endif
 
 #else
 #if VITA
-	path_prefix = "app0:data/";
+    path_prefix = "app0:data/";
 #elif XBOX
-	char* base = SDL_WinRTGetFSPathUTF8(SDL_WINRT_PATH_INSTALLED_LOCATION);
-	int size = snprintf(NULL, 0, "%s/data/", base);
-	char* buf = malloc(size + 1);
-	sprintf(buf, "%s/data/", base);
-	path_prefix = buf;
+    char* base = SDL_WinRTGetFSPathUTF8(SDL_WINRT_PATH_INSTALLED_LOCATION);
+    int size = snprintf(NULL, 0, "%s/data/", base);
+    char* buf = malloc(size + 1);
+    sprintf(buf, "%s/data/", base);
+    path_prefix = buf;
 #elif APPLE
 
-	char* base = SDL_GetBasePath();
-	int size = snprintf(NULL, 0, "%sdata/", base);
-	char* buf = (char*)malloc(size + 1);
-	sprintf(buf, "%sdata/", base);
-	path_prefix = buf;
+    char* base = SDL_GetBasePath();
+    int size = snprintf(NULL, 0, "%sdata/", base);
+    char* buf = (char*)malloc(size + 1);
+    sprintf(buf, "%sdata/", base);
+    path_prefix = buf;
 #else
-	path_prefix = "data/";
+    path_prefix = "data/";
 #endif
-	printf("asset: path: %s\n", path_prefix);
+    printf("asset: path: %s\n", path_prefix);
 #endif
 
-	size_t needed = snprintf(NULL, 0, "%s%s", path_prefix, vpath) + 1;
+    size_t needed = snprintf(NULL, 0, "%s%s", path_prefix, vpath) + 1;
 
-	char* tmp = (char*)calloc(needed, 1);
+    char* tmp = (char*)calloc(needed, 1);
 
-	snprintf(tmp, needed, "%s%s", path_prefix, vpath);
+    snprintf(tmp, needed, "%s%s", path_prefix, vpath);
 
     return tmp;
 }
 
 
+namespace spt
+{
+	Packet serialize_player_packet(const Player& p)
+	{
+        std::vector<char> data;
+        data.push_back(p.rect.x);
+		data.push_back(p.rect.y);
+		data.push_back(p.rect.w);
+		data.push_back(p.rect.h);
+
+        Packet pa;
+		pa.type = PLAYER_MOVE;
+        pa.data = data;
+
+		return pa;
+	}
+}
+
 int main(int argc, char* argv[])
 {
-
-
+    std::string nickname;
+    std::cin >> nickname;
 
 
     //enet
     enet_initialize();
 
-    if(strcmp(argv[1], "server") == 0)
-    {
-        EnetServer* s = new EnetServer();
-        s->init("127.0.0.1", "1234", 2);
-        char *data;
-        int size;
-        while (1)
-        {
-            data = s->receive(&size);
-            if(data == NULL)
-                continue;
-            s->send_to_all(data, size);
-        }
-        return EXIT_SUCCESS;
-    }
+    std::thread server_thread([](){
+		en::scope<Server> s = en::create_scope<Server>();
+		s->Run();
+    });
+
 
     EnetClient* c = new EnetClient();
     c->connect("127.0.0.1", "1234");
 
     char* my_data = (char*)calloc(1, sizeof(SDL_Rect) + sizeof(char));
-    my_data[0] = argv[1][0];
-    char* their_data;
+    my_data[0] = nickname.c_str()[0];
+    
+    Packet their_data;
 
 
     SDL_Window* window = NULL;
@@ -132,7 +172,7 @@ int main(int argc, char* argv[])
 
     Player* gamer;
     Player* other_gamer;
-    if(argv[1][0] == 'a')
+    if(nickname.c_str()[0] == 'a')
     {
         gamer = new Player(burgir, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
         other_gamer = new Player(steak, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
@@ -169,6 +209,8 @@ int main(int argc, char* argv[])
         c->send(my_data, sizeof(SDL_Rect) + sizeof(char));
         //xd
 
+
+
         const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
 
         gamer->Move(currentKeyStates);
@@ -176,11 +218,10 @@ int main(int argc, char* argv[])
 
         while (1)
         {
-            their_data = c->receive(NULL);
-            if(their_data != NULL && their_data[0] != argv[1][0])
+            their_data = c->receive();
+            switch (their_data.type)
             {
-                memcpy(&other_gamer->rect, their_data + 1, sizeof(SDL_Rect));
-                break;
+
             }
         }
 
