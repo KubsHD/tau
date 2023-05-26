@@ -19,9 +19,7 @@ void Server::Run()
 	while (1)
 	{
 		data = s->receive();
-		if (data.is_empty())
-			continue;
-		s->broadcast(data.data.data(), data.size);
+		s->broadcast(data);
 	}
 
 	return;

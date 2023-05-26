@@ -62,6 +62,8 @@ endif()
 target_link_libraries(splatter PRIVATE ${game_libs})
 target_compile_definitions(splatter PRIVATE _CRT_SECURE_NO_WARNINGS=1)
 target_include_directories(splatter PUBLIC "${PROJECT_SOURCE_DIR}/src")
+target_include_directories(splatter PUBLIC "${PROJECT_SOURCE_DIR}/src/lib")
+
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   # In non-win32 debug build, debug_malloc is on by default

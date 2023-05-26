@@ -9,25 +9,19 @@
 #include "enet/enet.h"
 #include <iostream>
 #include "Player.h"
+#include <sstream>
+#include <Serialization.h>
 
 struct Packet {
     int type;
 	int size;
 	std::vector<char> data;
 
-	Packet(std::vector<char> d) : data(d), size(d.size()) {}
-    Packet()
-    {
-        size = 0;
-        std::cout << "Recieved empty packet!" << std::endl;
-    }
-
-    bool is_empty()
-    {
-        return size == 0;
-    }
-
-
+    template<class Archive>
+	void serialize(Archive& archive)
+	{
+		archive(type, size, data); // serialize things by passing them to the archive
+	}
 };
 
 
@@ -65,9 +59,7 @@ public:
                          const char* port_string ///<[in] port number
                          ) = 0;
     /// send data to host to which the client is connected
-    virtual bool send(char* buf, ///<[in] buffer with binary data
-                      int size ///<[in] size of the buffer
-                      ) = 0;
+    virtual bool send(Packet& p) = 0;
     /// receive data
     virtual Packet receive() = 0;
 };
@@ -81,6 +73,8 @@ public:
     ///<[in] buffer with binary data 
     ///<[in] size of the buffer
     virtual bool broadcast(char* buf, int size) = 0;
+
+	virtual bool broadcast(Packet p) = 0;
 
     /// Sends data to specified client
     ///<[in] buffer with binary data
@@ -130,6 +124,25 @@ public:
 //        }
         return true;
     }
+
+	bool broadcast(Packet p) override
+	{
+		std::vector<ENetPacket*> packets;
+		for (ENetPeer* client : clients)
+		{
+
+            auto raw_data = spt::serialize(p);
+
+			packets.push_back(enet_packet_create(raw_data.data(), raw_data.size(), ENET_PACKET_FLAG_NO_ALLOCATE));
+			enet_peer_send(client, 0, packet);
+		}
+		enet_host_flush(server);
+		//        for(ENetPacket* packet_ : packets)
+		//        {
+		//            enet_packet_destroy(packet_);
+		//        }
+		return true;
+	}
     
    
 
@@ -146,7 +159,7 @@ public:
             {
                 case ENET_EVENT_TYPE_RECEIVE:
                     packet = event.packet;
-                    return Packet(std::vector<char>((char*)packet->data, (char*)packet->data + packet->dataLength));
+                    return spt::deserialize<Packet>(std::vector<char>((char*)packet->data, (char*)packet->data + packet->dataLength));
                     break;
                 case ENET_EVENT_TYPE_CONNECT:
                     clients.push_back(event.peer);
@@ -226,14 +239,17 @@ public:
         }
     }
 
-    bool send(char* buf, int size) override
+    bool send(Packet& p) override
     {
+
+        std::vector<char> data = spt::serialize(p);
+
         if(packet != NULL)
         {
             enet_packet_destroy(packet);
             packet = NULL;
         }
-        packet = enet_packet_create (buf, size, ENET_PACKET_FLAG_NO_ALLOCATE);
+        packet = enet_packet_create (data.data(), data.size(), ENET_PACKET_FLAG_NO_ALLOCATE);
         enet_peer_send (peer, 0, packet);
         enet_host_flush (client);
         //enet_packet_destroy(packet);
@@ -254,7 +270,7 @@ public:
             {
                 case ENET_EVENT_TYPE_RECEIVE:
                     packet = event.packet;
-                    return Packet(std::vector<char>((char*)packet->data, (char*)packet->data + packet->dataLength));
+                    return spt::deserialize<Packet>(std::vector<char>((char*)packet->data, (char*)packet->data + packet->dataLength));
                     break;
                 default:
                     break;

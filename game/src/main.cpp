@@ -22,6 +22,14 @@
 #include <iostream>
 #include <server/Server.h>
 #include <PacketTypes.h>
+#include <sstream>
+
+
+#include <lib/cereal/types/unordered_map.hpp>
+#include <lib/cereal/types/memory.hpp>
+#include <lib/cereal/archives/binary.hpp>
+#include <lib/cereal/archives/portable_binary.hpp>
+
 
 struct HelloPacketReq{
     // name
@@ -104,43 +112,45 @@ const char* get_real_path(const char* vpath)
 }
 
 
+
+struct player_move_packet {
+	int x;
+	int y;
+
+	template<class Archive>
+	void serialize(Archive& archive)
+	{
+		archive(x, y);
+	}
+};
+
+
 namespace spt
 {
-	Packet serialize_player_packet(const Player& p)
+
+	Packet create_player_packet(const Player& p)
 	{
-        std::vector<char> data;
-        data.push_back(p.rect.x);
-		data.push_back(p.rect.y);
-		data.push_back(p.rect.w);
-		data.push_back(p.rect.h);
-
         Packet pa;
-		pa.type = PLAYER_MOVE;
-        pa.data = data;
+        pa.type = PacketType::PLAYER_MOVE;
 
-		return pa;
+        player_move_packet pmp = {
+			p.rect.x, p.rect.y
+		};
+
+        pa.data = serialize<player_move_packet>(pmp);
+        pa.size = pa.data.size();
+
+        return pa;
 	}
 }
 
-struct player_move_packet {
-    char type;
-    int player_id;
-    int x;
-    int y;
-};
 
-player_move_packet serialize_player_move_packet(Player p)
+void handle_player_move_packet(Packet& pa, Player* player)
 {
-    struct player_move_packet packet = {
-            '0', 0, p.rect.x, p.rect.y
-    };
-    return packet;
-}
+	player_move_packet p = spt::deserialize<player_move_packet>(pa.data);
 
-void handle_player_move_packet(player_move_packet* p, Player player)
-{
-    player.rect.x = p->x;
-    player.rect.y = p->y;
+    player->rect.x = p.x;
+    player->rect.y = p.y;
 }
 
 int main(int argc, char* argv[])
@@ -226,37 +236,28 @@ int main(int argc, char* argv[])
             }
         }
 
-        //xd
-        //memcpy(my_data + 1, &gamer->rect, sizeof(SDL_Rect));
-        auto x = serialize_player_move_packet(*gamer);
-        c->send((char*)&x, sizeof(player_move_packet));
-        //xd
+        auto packet = spt::create_player_packet(*gamer);
 
 
+
+        c->send(packet);
 
         const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
 
         gamer->Move(currentKeyStates);
 
-        char* rec;
+        Packet rec;
 
-        do {
-            rec = c->receive_as_bytes();
-        } while (rec == NULL);
+        rec = c->receive();
 
-        switch (rec[0]) {
-            case '0':
-                handle_player_move_packet((player_move_packet*)rec, *other_gamer);
+        if (rec.data.size() > 0)
+        {
+
+            switch (rec.type) {
+            case PacketType::PLAYER_MOVE:
+                handle_player_move_packet(rec, other_gamer);
+            }
         }
-
-//        while (1)
-//        {
-//            //their_data = c->receive();
-//            switch (their_data.type)
-//            {
-//
-//            }
-//        }
 
         //Clear screen
         SDL_RenderClear(renderer);
