@@ -24,48 +24,14 @@
 #include <PacketTypes.h>
 #include <sstream>
 
+#include <core/Window.h>
+
 
 #include <lib/cereal/types/unordered_map.hpp>
 #include <lib/cereal/types/memory.hpp>
 #include <lib/cereal/archives/binary.hpp>
 #include <lib/cereal/archives/portable_binary.hpp>
-
-
-struct HelloPacketReq{
-    // name
-};
-
-struct HelloPacketRes {
-	// id
-};
-
-namespace en {
-
-	template<typename T>
-	using ref = std::shared_ptr<T>;
-	template<typename T, typename ... Args>
-	constexpr ref<T> create_ref(Args&& ... args)
-	{
-		return std::make_shared<T>(std::forward<Args>(args)...);
-	}
-
-	template<typename T>
-	using scope = std::unique_ptr<T>;
-	template<typename T, typename ... Args>
-	constexpr scope<T> create_scope(Args&& ... args)
-	{
-		return std::make_unique<T>(std::forward<Args>(args)...);
-	}
-}
-
-
-#define SCREEN_WIDTH 600//1280
-#define SCREEN_HEIGHT 400//720
-
-#define ASSERT_SDL(cond)    if(!(cond)){fprintf(stderr, "SDL broke: %s\n", SDL_GetError());return EXIT_FAILURE;}
-
-#define ERR(source)                                                                                                    \
-	(fprintf(stderr, "%s:%d\n", __FILE__, __LINE__), perror(source), exit(EXIT_FAILURE))
+#include <core/Macros.h>
 
 SDL_Texture* loadTexture(std::string, SDL_Renderer*);
 
@@ -163,7 +129,7 @@ int main(int argc, char* argv[])
     enet_initialize();
 
     std::thread server_thread([](){
-		en::scope<Server> s = en::create_scope<Server>();
+		spt::scope<Server> s = spt::create_scope<Server>();
 		s->Run();
     });
 
@@ -176,22 +142,17 @@ int main(int argc, char* argv[])
     
     Packet their_data;
 
-
-    SDL_Window* window = NULL;
+    spt::scope<Window> window;
     SDL_Renderer* renderer = NULL;
     SDL_Texture* t1 = NULL;
 
     ASSERT_SDL(SDL_Init(SDL_INIT_EVERYTHING) >= 0)
 
     //Create window
-    window = SDL_CreateWindow("Splatter", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                              SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-
-    ASSERT_SDL(window != NULL)
+    window = spt::create_scope<Window>(SCREEN_WIDTH, SCREEN_HEIGHT, "Splatter");
 
     //Create renderer
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-
+    renderer = SDL_CreateRenderer(window->get_ptr(), -1, SDL_RENDERER_ACCELERATED);
     ASSERT_SDL(renderer != NULL)
 
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
@@ -297,6 +258,14 @@ int main(int argc, char* argv[])
 
         SDL_Delay(delay < 16.666f && delay > 0 ? delay : 16.666f);
     }
+
+    #if WIN32
+    #include <Windows.h>
+	TerminateThread(server_thread.native_handle(), 0);
+	server_thread.detach();
+    #endif
+
+	SDL_Quit();
 
     return EXIT_SUCCESS;
 }
