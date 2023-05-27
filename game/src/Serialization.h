@@ -9,7 +9,8 @@ namespace spt
 	template<typename T>
 	T deserialize(std::vector<char> data)
 	{
-		std::stringstream ss(std::string(data.begin(), data.end()));
+        auto str = std::string(data.begin(), data.end());
+		std::stringstream ss(str);
 		cereal::PortableBinaryInputArchive deserializer(ss);
 
 		T obj = T();

@@ -104,10 +104,8 @@ public:
                                    2      /* allow up to 2 channels to be used, 0 and 1 */,
                                    0      /* assume any amount of incoming bandwidth */,
                                    0      /* assume any amount of outgoing bandwidth */);
-        if (server == NULL)
-        {
-            return false;
-        }
+
+        return server != NULL;
     }
     bool broadcast(char* buf, int size) override
     {
@@ -134,7 +132,7 @@ public:
             auto raw_data = spt::serialize(p);
 
 			packets.push_back(enet_packet_create(raw_data.data(), raw_data.size(), ENET_PACKET_FLAG_NO_ALLOCATE));
-			enet_peer_send(client, 0, packet);
+			enet_peer_send(client, 0, packets.back());
 		}
 		enet_host_flush(server);
 		//        for(ENetPacket* packet_ : packets)
@@ -246,7 +244,7 @@ public:
 
         if(packet != NULL)
         {
-            enet_packet_destroy(packet);
+            //enet_packet_destroy(packet);
             packet = NULL;
         }
         packet = enet_packet_create (data.data(), data.size(), ENET_PACKET_FLAG_NO_ALLOCATE);
@@ -264,13 +262,18 @@ public:
             //enet_packet_destroy(packet);
             packet = NULL;
         }
+        std::vector<char> vec;
         while (enet_host_service (client, &event, 0) > 0)
         {
+            Packet ret;
             switch (event.type)
             {
                 case ENET_EVENT_TYPE_RECEIVE:
                     packet = event.packet;
-                    return spt::deserialize<Packet>(std::vector<char>((char*)packet->data, (char*)packet->data + packet->dataLength));
+                    vec = std::vector<char>((char*)packet->data, (char*)packet->data + packet->dataLength);
+                    ret = spt::deserialize<Packet>(vec);
+                    vec.clear();
+                    return ret;
                     break;
                 default:
                     break;
