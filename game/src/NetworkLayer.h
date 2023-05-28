@@ -14,15 +14,46 @@
 
 struct Packet {
     int type;
-	int size;
 	std::vector<char> data;
 
-    template<class Archive>
-	void serialize(Archive& archive)
-	{
-		archive(type, size, data); // serialize things by passing them to the archive
-	}
+    template<typename Stream> bool Serialize(Stream & stream)
+    {
+        serialize_int32(stream, type);
+        serialize_char_vector(stream, data, data.size());
+    }
 };
+
+struct player_move_packet {
+    float x;
+    float y;
+
+    template<typename Stream> bool Serialize(Stream & stream)
+    {
+        serialize_float32(stream, x);
+        serialize_float32(stream, x);
+    }
+};
+
+namespace spt
+{
+    template<typename T>
+    T deserialize(std::vector<char> vec)
+    {
+        T packet;
+        auto rd = new ReadStream((uint8_t*)vec.data(), vec.size());
+        packet.Serialize(rd);
+        return packet;
+    }
+
+    template<typename T>
+    std::vector<char> serialize(T packet)
+    {
+        auto vec = std::vector<char>(sizeof(T));
+        auto wr = new WriteStream((uint8_t*)vec.data(), sizeof(T));
+        packet.Serialize(wr);
+        return vec;
+    }
+}
 
 
 namespace net {
@@ -157,7 +188,9 @@ public:
             {
                 case ENET_EVENT_TYPE_RECEIVE:
                     packet = event.packet;
-                    return spt::deserialize<Packet>(std::vector<char>((char*)packet->data, (char*)packet->data + packet->dataLength));
+                    return spt::deserialize<Packet>(std::vector<char>(
+                            (char*)packet->data,
+                            (char*)packet->data + packet->dataLength));
                     break;
                 case ENET_EVENT_TYPE_CONNECT:
                     clients.push_back(event.peer);

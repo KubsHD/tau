@@ -78,19 +78,6 @@ const char* get_real_path(const char* vpath)
 }
 
 
-
-struct player_move_packet {
-	int x;
-	int y;
-
-	template<class Archive>
-	void serialize(Archive& archive)
-	{
-		archive(x, y);
-	}
-};
-
-
 namespace spt
 {
 
@@ -100,11 +87,14 @@ namespace spt
         pa.type = PacketType::PLAYER_MOVE;
 
         player_move_packet pmp = {
-			p.rect.x, p.rect.y
+                (float )p.rect.x, (float )p.rect.y
 		};
 
-        pa.data = serialize<player_move_packet>(pmp);
-        pa.size = pa.data.size();
+        pa.data.resize(sizeof(player_move_packet));
+
+        auto wr = new WriteStream((uint8_t *)pa.data.data(), pa.data.size());
+
+        pmp.Serialize(wr);
 
         return pa;
 	}

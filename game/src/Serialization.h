@@ -1,35 +1,280 @@
-#pragma once
+//
+// Created by I3artek on 27/05/2023.
+//
+//https://gafferongames.com/post/reading_and_writing_packets/
+//https://gafferongames.com/post/serialization_strategies/
 
-#include <lib/cereal/archives/portable_binary.hpp>
-#include <lib/cereal/cereal.hpp>
-#include <lib/cereal/types/vector.hpp>
+#ifndef SPLATTER_SERIALIZATION_H
+#define SPLATTER_SERIALIZATION_H
 
-namespace spt
+#include <cstdint>
+#include <cstring>
+#include <cmath>
+#include <vector>
+
+#define assert(cond) if(!(cond)) return false;
+
+#define serialize_int32( stream, value)                             \
+    do                                                              \
+    {                                                               \
+        int32_t int32_value;                                        \
+        if ( stream->IsWriting )                                    \
+        {                                                           \
+            int32_value = (int32_t) value;                          \
+        }                                                           \
+        if ( !stream->SerializeInt32( int32_value ) )    \
+        {                                                           \
+            return false;                                           \
+        }                                                           \
+        if ( stream->IsReading )                                    \
+        {                                                           \
+            value = int32_value;                                    \
+        }                                                           \
+     } while (0)
+
+#define serialize_float32( stream, value )                           \
+  do                                                                 \
+  {                                                                  \
+      if ( !serialize_float_internal( stream, value ) )              \
+      {                                                              \
+          return false;                                              \
+      }                                                              \
+} while (0)
+
+#define serialize_bytes( stream, buffer, bytes )                     \
+  do                                                                 \
+  {                                                                  \
+      if ( !stream->SerializeBytes( buffer, bytes ) )                \
+      {                                                              \
+          return false;                                              \
+      }                                                              \
+} while (0)
+
+#define serialize_char_vector( stream, vector, bytes )              \
+  do                                                                \
+    {                                                               \
+        uint32_t size;                                                   \
+        if ( stream->IsWriting )                                    \
+        {                                                           \
+            size = vector.size();                                   \
+        }                                                           \
+        if ( !stream->SerializeUInt32( size ) )                     \
+        {                                                           \
+            return false;                                           \
+        }                                                           \
+        if ( !stream->SerializeCharVector( vector, size ))          \
+        {                                                           \
+            return false;                                           \
+        }                                                           \
+                                                                    \
+     } while (0)
+
+template <typename Stream>
+bool serialize_float_internal( Stream & stream,
+                               float & value )
 {
-	template<typename T>
-	T deserialize(std::vector<char> data)
-	{
-        auto str = std::string(data.begin(), data.end());
-		std::stringstream ss(str);
-		cereal::PortableBinaryInputArchive deserializer(ss);
-
-		T obj = T();
-
-		deserializer(obj);
-
-		return obj;
-	}
-
-	template<typename T>
-	std::vector<char> serialize(T& p)
-	{
-		std::stringstream ss;
-		cereal::PortableBinaryOutputArchive serializer(ss);
-
-		serializer(p);
-
-		std::string str = ss.str();
-
-		return std::vector<char>(str.begin(), str.end());
-	}
+    union FloatInt
+    {
+        float float_value;
+        uint32_t int_value;
+    };
+    FloatInt tmp;
+    if ( stream->IsWriting )
+    {
+        tmp.float_value = value;
+    }
+    bool result = stream->SerializeUInt32( tmp.int_value );
+    if ( stream->IsReading )
+    {
+        value = tmp.float_value;
+    }
+    return result;
 }
+
+class BitReader
+{
+private:
+    uint64_t scratch = 0;
+    int scratch_bits = 0;
+    int total_bits;
+    int num_bits_read = 0;
+    int word_index = 0;
+    uint32_t * buffer;
+public:
+    BitReader(const uint8_t * buffer, int bytes)
+    {
+        this->buffer = (uint32_t*)buffer;
+        total_bits = bytes * 8;
+    }
+
+    uint32_t ReadBits(int bits)
+    {
+        if(scratch_bits < bits)
+        {
+            uint64_t temp = buffer[word_index++];
+            temp <<= scratch_bits;
+            scratch |= temp;
+            scratch_bits = 32;
+        }
+        uint32_t temp = 0;
+        temp |= scratch;
+        temp <<= (32 - bits);
+        temp >>= (32 - bits);
+        scratch >>= bits;
+        scratch_bits -= bits;
+        total_bits -= bits;
+        return temp;
+    }
+
+    void ReadBytes(char* arr, int bytes)
+    {
+        memcpy(arr, buffer + word_index, bytes);
+        word_index += ceil((double)bytes / 4);
+    }
+
+    bool WouldReadPastEnd(int bits)
+    {
+        return bits > total_bits;
+    }
+};
+
+class BitWriter
+{
+private:
+    uint64_t scratch = 0;
+    int scratch_bits = 0;
+    int word_index = 0;
+    uint32_t* buffer;
+public:
+    BitWriter(uint8_t * buffer, int bytes)
+    {
+        this->buffer = (uint32_t*)buffer;
+    }
+
+    void WriteBits(uint32_t value, int bits)
+    {
+        uint64_t temp = value;
+        temp <<= 32 + bits;
+        temp >>= 32 + bits;
+        temp <<= scratch_bits;
+        scratch |= temp;
+        scratch_bits += bits;
+        if(scratch_bits >= 32)
+        {
+            buffer[word_index++] |= scratch;
+            scratch >>= 32;
+            scratch_bits -= 32;
+        }
+    }
+
+    void WriteBytes(char* arr, int bytes)
+    {
+        memcpy(buffer + word_index, arr, bytes);
+        word_index += ceil((double)bytes / 4);
+    }
+
+    void Flush()
+    {
+        buffer[word_index++] |= scratch;
+        scratch >>= 32;
+        scratch_bits -= 32;
+    }
+};
+
+class Stream
+{
+public:
+    enum { IsWriting = 0 };
+    enum { IsReading = 0 };
+    virtual bool SerializeInt32(int32_t & value) = 0;
+    virtual bool SerializeUInt32(uint32_t & value) = 0;
+    virtual bool SerializeBytes(char* arr, uint32_t size) = 0;
+    virtual bool SerializeCharVector(std::vector<char> vec, uint32_t size) = 0;
+};
+
+class WriteStream : Stream
+{
+public:
+
+    enum { IsWriting = 1 };
+    enum { IsReading = 0 };
+
+    WriteStream( uint8_t * buffer, int bytes ) : m_writer( buffer, bytes ) {}
+
+    bool SerializeInt32(int32_t & value) override
+    {
+        uint32_t unsigned_value = value - INT32_MIN;
+        m_writer.WriteBits( unsigned_value, 32 );
+        return true;
+    }
+
+    bool SerializeUInt32(uint32_t & value) override
+    {
+        m_writer.WriteBits( value, 32 );
+        return true;
+    }
+
+    bool SerializeBytes(char* arr, uint32_t size) override
+    {
+        m_writer.WriteBytes(arr, size);
+        return true;
+    }
+
+    bool SerializeCharVector(std::vector<char> vec, uint32_t size) override
+    {
+        return SerializeBytes(vec.data(), vec.size());
+    }
+
+private:
+
+    BitWriter m_writer;
+};
+
+class ReadStream : Stream
+{
+public:
+
+    enum { IsWriting = 0 };
+    enum { IsReading = 1 };
+
+    ReadStream( const uint8_t * buffer, int bytes ) : m_reader( buffer, bytes ) {}
+
+    bool SerializeInt32(int32_t & value) override
+    {
+        if ( m_reader.WouldReadPastEnd(32) )
+        {
+            return false;
+        }
+        uint32_t unsigned_value = m_reader.ReadBits( 32 );
+        value = (int32_t) unsigned_value + INT32_MIN;
+        return true;
+    }
+
+    bool SerializeUInt32(uint32_t & value) override
+    {
+        if ( m_reader.WouldReadPastEnd(32) )
+        {
+            return false;
+        }
+        value = m_reader.ReadBits( 32 );
+        return true;
+    }
+
+    bool SerializeBytes(char* arr, uint32_t size) override
+    {
+        m_reader.ReadBytes(arr, size);
+        return true;
+    }
+
+    bool SerializeCharVector(std::vector<char> vec, uint32_t size) override
+    {
+        vec.resize(size);
+        return SerializeBytes(vec.data(), vec.size());
+    }
+
+private:
+
+    BitReader m_reader;
+};
+
+#endif //SPLATTER_SERIALIZATION_H
