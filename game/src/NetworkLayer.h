@@ -20,6 +20,7 @@ struct Packet {
     {
         serialize_int32(stream, type);
         serialize_char_vector(stream, data, data.size());
+        return true;
     }
 };
 
@@ -31,6 +32,7 @@ struct player_move_packet {
     {
         serialize_float32(stream, x);
         serialize_float32(stream, x);
+        return true;
     }
 };
 
@@ -40,7 +42,7 @@ namespace spt
     T deserialize(std::vector<char> vec)
     {
         T packet;
-        auto rd = new ReadStream((uint8_t*)vec.data(), vec.size());
+        auto rd = new ReadStream32(vec, vec.size());
         packet.Serialize(rd);
         return packet;
     }
@@ -48,11 +50,28 @@ namespace spt
     template<typename T>
     std::vector<char> serialize(T packet)
     {
-        auto vec = std::vector<char>(sizeof(T));
-        auto wr = new WriteStream((uint8_t*)vec.data(), sizeof(T));
+        auto vec = std::vector<char>();
+        auto wr = new WriteStream32(vec);
         packet.Serialize(wr);
         return vec;
     }
+//    template<typename T>
+//    T deserialize(std::vector<char> vec)
+//    {
+//        T packet;
+//        auto rd = new ReadStream((uint8_t*)vec.data(), vec.size());
+//        packet.Serialize(rd);
+//        return packet;
+//    }
+//
+//    template<typename T>
+//    std::vector<char> serialize(T packet)
+//    {
+//        auto vec = std::vector<char>(sizeof(T));
+//        auto wr = new WriteStream((uint8_t*)vec.data(), sizeof(T));
+//        packet.Serialize(wr);
+//        return vec;
+//    }
 }
 
 

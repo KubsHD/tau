@@ -11,8 +11,29 @@
 #include <cstring>
 #include <cmath>
 #include <vector>
+#include <errno.h>
 
-#define assert(cond) if(!(cond)) return false;
+#define REALLOC_C 2
+
+inline int max_i(int a, int b) { return a > b ? a : b; }
+
+#define check_for_space(buffer, b_size, required)                   \
+    if(b_size < required)                                           \
+        {                                                           \
+            size_t new_size = max_i(REALLOC_C * b_size, required);  \
+            buffer = (uint32_t*)realloc(buffer, new_size);          \
+            if(ENOMEM == errno)                                     \
+            return false;                                           \
+            b_size = new_size;                                      \
+        }
+
+#define check_for_enough_data(available, required)                  \
+    if(available < required)                                        \
+    {                                                               \
+        return false;                                               \
+    }
+
+#define simple_assert(cond) if(!(cond)) return false;
 
 #define serialize_int32( stream, value)                             \
     do                                                              \
@@ -41,19 +62,10 @@
       }                                                              \
 } while (0)
 
-#define serialize_bytes( stream, buffer, bytes )                     \
-  do                                                                 \
-  {                                                                  \
-      if ( !stream->SerializeBytes( buffer, bytes ) )                \
-      {                                                              \
-          return false;                                              \
-      }                                                              \
-} while (0)
-
 #define serialize_char_vector( stream, vector, bytes )              \
   do                                                                \
     {                                                               \
-        uint32_t size;                                                   \
+        uint32_t size;                                              \
         if ( stream->IsWriting )                                    \
         {                                                           \
             size = vector.size();                                   \
@@ -188,8 +200,94 @@ public:
     enum { IsReading = 0 };
     virtual bool SerializeInt32(int32_t & value) = 0;
     virtual bool SerializeUInt32(uint32_t & value) = 0;
-    virtual bool SerializeBytes(char* arr, uint32_t size) = 0;
+    //virtual bool SerializeBytes(char* arr, uint32_t size);
     virtual bool SerializeCharVector(std::vector<char> vec, uint32_t size) = 0;
+};
+
+class WriteStream32 : public Stream
+{
+private:
+    uint32_t* buffer;
+    uint32_t head;
+    uint32_t capacity;
+public:
+    enum { IsWriting = 1 };
+    enum { IsReading = 0 };
+
+    WriteStream32(std::vector<char> vector, uint32_t size = 0)
+    {
+        buffer = (uint32_t*)vector.data();
+    }
+
+    bool SerializeInt32(int32_t & value) override
+    {
+        uint32_t uvalue = value - INT32_MIN;
+        return SerializeUInt32(uvalue);
+    }
+
+    bool SerializeUInt32(uint32_t & value) override
+    {
+        check_for_space(buffer, capacity, head + 1)
+        buffer[head++] = value;
+        return true;
+    }
+
+    bool SerializeCharVector(std::vector<char> vec, uint32_t size) override
+    {
+        if(size % 4 != 0)
+            return false;
+        check_for_space(buffer, capacity, head + size / 4)
+        std::memcpy(buffer + head, vec.data(), size);
+        head += size / 4;
+        return true;
+    }
+};
+
+class ReadStream32 : public Stream
+{
+private:
+    uint32_t* buffer;
+    uint32_t head;
+    uint32_t capacity;
+public:
+    ReadStream32(std::vector<char> vector, uint32_t size = 0)
+    {
+        buffer = (uint32_t*) vector.data();
+        head = 0;
+        capacity = size;
+    }
+
+    bool SerializeInt32(int32_t & value) override
+    {
+        uint32_t uvalue;
+        if(!SerializeUInt32(uvalue))
+        {
+            return false;
+        }
+        value = uvalue + INT32_MIN;
+        return true;
+    }
+
+    bool SerializeUInt32(uint32_t & value) override
+    {
+        check_for_enough_data(capacity - head, 1)
+        value = buffer[head++];
+        return true;
+    }
+
+    bool SerializeCharVector(std::vector<char> vec, uint32_t size) override
+    {
+        if(size % 4 != 0)
+            return false;
+        check_for_enough_data(capacity - head, size / 4);
+        if(vec.capacity() < size)
+        {
+            vec.resize(size);
+        }
+        std::memcpy(vec.data(), buffer + head, size);
+        head += size / 4;
+        return true;
+    }
 };
 
 class WriteStream : Stream
@@ -214,7 +312,7 @@ public:
         return true;
     }
 
-    bool SerializeBytes(char* arr, uint32_t size) override
+    bool SerializeBytes(char* arr, uint32_t size)
     {
         m_writer.WriteBytes(arr, size);
         return true;
@@ -260,7 +358,7 @@ public:
         return true;
     }
 
-    bool SerializeBytes(char* arr, uint32_t size) override
+    bool SerializeBytes(char* arr, uint32_t size)
     {
         m_reader.ReadBytes(arr, size);
         return true;
