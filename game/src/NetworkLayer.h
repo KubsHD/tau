@@ -123,21 +123,25 @@ public:
 
     Packet receive() override
     {
-        if(packet != NULL)
-        {
-            //enet_packet_destroy(packet);
-            packet = NULL;
-        }
+//        if(packet != NULL)
+//        {
+//            //enet_packet_destroy(packet);
+//            packet = NULL;
+//        }
         while (enet_host_service (server, &event, 1000) > 0)
         {
             switch (event.type)
             {
                 case ENET_EVENT_TYPE_RECEIVE:
-                    packet = event.packet;
-                    return spt::deserialize<Packet>(std::vector<char>(
-                            (char*)packet->data,
-                            (char*)packet->data + packet->dataLength));
+                {
+                    std::vector<char> temp(event.packet->dataLength);
+                    std::memcpy(temp.data(), event.packet->data, event.packet->dataLength);
+                    for(auto a : temp)
+                        printf("%c ", a);
+                    printf("\n");
+                    return spt::deserialize<Packet>(temp);
                     break;
+                }
                 case ENET_EVENT_TYPE_CONNECT:
                     clients.push_back(event.peer);
                     break;
@@ -222,11 +226,14 @@ public:
 
         std::vector<char> data = spt::serialize(p);
 
-        if(packet != NULL)
-        {
-            //enet_packet_destroy(packet);
-            packet = NULL;
-        }
+        //uint32_t* xd = (uint32_t*)data.data();
+
+//        if(packet != NULL)
+//        {
+//            //enet_packet_destroy(packet);
+//            packet = NULL;
+//        }
+
         packet = enet_packet_create (data.data(), data.size(), ENET_PACKET_FLAG_NO_ALLOCATE);
         enet_peer_send (peer, 0, packet);
         enet_host_flush (client);

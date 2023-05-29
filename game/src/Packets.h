@@ -37,9 +37,10 @@ namespace spt
     template<typename T>
     std::vector<char> serialize(T packet)
     {
-        auto vec = std::vector<char>();
-        auto wr = new WriteStream32(vec);
+        auto wr = new WriteStream32();
         packet.Serialize(wr);
+        auto vec = std::vector<char>(wr->GetSize() * 4);
+        std::memcpy(vec.data(), wr->GetBuffer(), wr->GetSize() * 4);
         return vec;
     }
 }
@@ -79,7 +80,7 @@ struct player_base_info_packet {
 
     template<typename Stream> bool Serialize(Stream & stream)
     {
-        serialize_int32(stream, id);
+        serialize_uint32(stream, id);
         return true;
     }
 };

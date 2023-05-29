@@ -5,6 +5,8 @@ GameObject::GameObject(Texture *texture, int x, int y) : texture(texture)
 {
     rect.x = x;
     rect.y = y;
+    if(texture == NULL)
+        return;
     rect.h = texture->height;
     rect.w = texture->width;
 }

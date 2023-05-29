@@ -105,7 +105,7 @@ namespace spt
 int main(int argc, char* argv[])
 {
     std::string nickname;
-    std::cin >> nickname;
+    //std::cin >> nickname;
 
 
     //enet
@@ -120,8 +120,32 @@ int main(int argc, char* argv[])
     EnetClient* c = new EnetClient();
     c->connect("127.0.0.1", "1234");
     new_player_packet pp;
-    Packet wp = WRAP_PACKET(PacketType::NEW_PLAYER, pp);
+    //Packet wp = WRAP_PACKET(PacketType::NEW_PLAYER, pp);
+    Packet wp = WRAP_PACKET(2222, pp);
     c->send(wp);
+
+    //xddddddd
+//    auto w = new WriteStream32();
+//
+//    int a = 2137;
+//    int b = 0;
+//    serialize_int32(w, a);
+//    auto r = new ReadStream32(w->GetBuffer(), 8);
+//    serialize_int32(r, b);
+//    serialize_int32(w, a);
+//    serialize_int32(r, b);
+//
+//
+//    //xddd
+//    std::vector<char> vc;
+//    Packet test ={};// WRAP_PACKET(2137, pp);
+//    test.type = 2137;
+//    player_base_info_packet xd;
+//    while (1)
+//    {
+//        vc = spt::serialize(xd);
+//        xd = spt::deserialize<player_base_info_packet>(vc);
+//    }
 
     spt::scope<Window> window;
     SDL_Renderer* renderer = NULL;
@@ -159,7 +183,7 @@ int main(int argc, char* argv[])
 
     //here the player waits for the server to assign it unique id
     int t = PacketType::PACKET_EMPTY;
-    while(t != PacketType::PLAYER_INFO)
+    while(t != 2137)
     {
         wp = c->receive();
         t = wp.type;
@@ -168,7 +192,7 @@ int main(int argc, char* argv[])
 
     std::vector<Player*> players;
 
-    while(t != PacketType::PLAYERS_POSITIONS)
+    while(t != 3127)
     {
         wp = c->receive();
         t = wp.type;

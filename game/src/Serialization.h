@@ -43,13 +43,31 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
         {                                                           \
             int32_value = (int32_t) value;                          \
         }                                                           \
-        if ( !stream->SerializeInt32( int32_value ) )    \
+        if ( !stream->SerializeInt32( int32_value ) )               \
         {                                                           \
             return false;                                           \
         }                                                           \
         if ( stream->IsReading )                                    \
         {                                                           \
             value = int32_value;                                    \
+        }                                                           \
+     } while (0)
+
+#define serialize_uint32( stream, value)                             \
+    do                                                              \
+    {                                                               \
+        uint32_t uint32_value;                                        \
+        if ( stream->IsWriting )                                    \
+        {                                                           \
+            uint32_value = (uint32_t) value;                          \
+        }                                                           \
+        if ( !stream->SerializeUInt32( uint32_value ) )               \
+        {                                                           \
+            return false;                                           \
+        }                                                           \
+        if ( stream->IsReading )                                    \
+        {                                                           \
+            value = uint32_value;                                    \
         }                                                           \
      } while (0)
 
@@ -245,6 +263,16 @@ public:
         buffer = (uint32_t*)vector.data();
     }
 
+    WriteStream32()
+    {
+
+    }
+
+    ~WriteStream32()
+    {
+        free(buffer);
+    }
+
     bool SerializeInt32(int32_t & value) override
     {
         uint32_t uvalue = value - INT32_MIN;
@@ -267,6 +295,16 @@ public:
         head += size / 4;
         return true;
     }
+
+    uint32_t* GetBuffer()
+    {
+        return buffer;
+    }
+
+    uint32_t GetSize() const
+    {
+        return head;
+    }
 };
 
 class ReadStream32 : public Stream
@@ -276,11 +314,28 @@ private:
     uint32_t head;
     uint32_t capacity;
 public:
+    enum { IsWriting = 0 };
+    enum { IsReading = 1 };
+
     ReadStream32(std::vector<char> vector, uint32_t size = 0)
     {
-        buffer = (uint32_t*) vector.data();
+        //buffer = (uint32_t*) vector.data();
         head = 0;
-        capacity = size;
+        capacity = vector.size() / 4;
+        buffer = (uint32_t*) malloc(capacity);
+        std::memcpy(buffer, vector.data(), vector.size());
+    }
+
+    ReadStream32(uint32_t* buf, uint32_t s)
+    {
+        buffer = buf;
+        capacity = s;
+        head = 0;
+    }
+
+    ~ReadStream32()
+    {
+        free(buffer);
     }
 
     bool SerializeInt32(int32_t & value) override
