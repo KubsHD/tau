@@ -4,6 +4,7 @@
 #include "Packets.h"
 #include <iostream>
 #include <chrono>
+#include <SDL.h>
 
 void Server::Run()
 {
@@ -38,7 +39,7 @@ void Server::Run()
                 players.back()->id = players.size() - 1;
                 player_base_info_packet bp = {players.back()->id};
                 Packet p = WRAP_PACKET(PacketType::PLAYER_INFO, bp);
-                s->broadcast(p);
+                s->send(p, s->clients.back());
                 if(players.size() == 2)
                 {
                     //start the game if there are 2 players
@@ -56,8 +57,18 @@ void Server::Run()
             }
             case PacketType::PLAYER_POSITION:
             {
-                auto temp = spt::deserialize<player_position_packet>(data.data);
-                handle_player_position_packet(temp, *players[temp.id]);
+                auto temp1 = spt::deserialize<player_position_packet>(data.data);
+                handle_player_position_packet(temp1, *players[temp1.id]);
+				//start the game if there are 2 players
+				players_positions_packet temp;
+				for (auto p_ : players)
+				{
+					temp.players.push_back(create_player_position_packet(*p_));
+				}
+				Packet p2 = {};
+				p2.type = PacketType::PLAYERS_POSITIONS;
+				p2.data = spt::serialize(temp);
+				s->broadcast(p2);
                 break;
             }
         }
@@ -65,6 +76,8 @@ void Server::Run()
         auto end = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> time =
                 std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+        
+        SDL_Delay(100);
 	}
 
 	return;

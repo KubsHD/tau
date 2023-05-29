@@ -4,19 +4,19 @@
 void Player::Move(const Uint8 *keyStates) {
     if(keyStates[SDL_SCANCODE_UP])
     {
-        rect.y -= speed;
+        y -= speed;
     }
     if(keyStates[SDL_SCANCODE_DOWN])
     {
-        rect.y += speed;
+        y += speed;
     }
     if(keyStates[SDL_SCANCODE_RIGHT])
     {
-        rect.x += speed;
+        x += speed;
     }
     if(keyStates[SDL_SCANCODE_LEFT])
     {
-        rect.x -= speed;
+        x -= speed;
     }
 }
 

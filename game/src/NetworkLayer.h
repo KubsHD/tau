@@ -108,16 +108,15 @@ public:
 
     bool send(Packet p, ENetPeer* client)
     {
+		std::cout << "[SERVER] " << "Sending packet with type: " << p.type << " to client: " << client->data << std::endl;
+
         auto raw_data = spt::serialize(p);
 
         auto ep = enet_packet_create(raw_data.data(), raw_data.size(), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send(client, 0, ep);
 
         enet_host_flush(server);
-        //        for(ENetPacket* packet_ : packets)
-        //        {
-        //            enet_packet_destroy(packet_);
-        //        }
+		enet_packet_destroy(ep);
         return true;
     }
     
@@ -172,6 +171,8 @@ public:
                     return (char*)packet->data;
                     break;
                 case ENET_EVENT_TYPE_CONNECT:
+
+					event.peer->data = (void*)"Client";
                     clients.push_back(event.peer);
                     return NULL;
                     break;

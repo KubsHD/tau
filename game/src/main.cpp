@@ -264,7 +264,8 @@ int main(int argc, char* argv[])
 
                     for(int i = 0; i < temp.size(); i++)
                     {
-                        handle_player_position_packet(temp[i], *players[i]);
+						if (temp[i].id != own_id)
+                            handle_player_position_packet(temp[i], *players[i]);
                     }
                     break;
                 }
@@ -313,11 +314,11 @@ int main(int argc, char* argv[])
         SDL_Delay(delay < 16.666f && delay > 0 ? delay : 16.666f);
     }
 
- //   #if WIN32
- //   #include <Windows.h>
-	//TerminateThread(server_thread.native_handle(), 0);
-	//server_thread.detach();
- //   #endif
+#if WIN32
+#include <Windows.h>
+	TerminateThread(server_thread.native_handle(), 0);
+	server_thread.detach();
+#endif
 
 	SDL_Quit();
 
