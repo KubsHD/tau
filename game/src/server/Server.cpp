@@ -47,7 +47,9 @@ void Server::Run()
                     {
                         temp.players.push_back(create_player_position_packet(*p_));
                     }
-                    Packet p2 = WRAP_PACKET(PacketType::PLAYERS_POSITIONS, temp);
+                    Packet p2 = {};
+					p2.type = PacketType::PLAYERS_POSITIONS;
+                    p2.data = spt::serialize(temp);
                     s->broadcast(p2);
                 }
                 break;

@@ -15,6 +15,17 @@
 
 #define REALLOC_C 2
 
+class Stream;
+
+enum StreamType
+{
+	Read, Write
+};
+
+
+template <typename T>
+bool serialize_vector2(Stream& stream, std::vector<T> vector);
+
 inline int max_i(int a, int b) { return a > b ? a : b; }
 
 #define check_for_space(buffer, b_size, required)                   \
@@ -39,7 +50,7 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
     do                                                              \
     {                                                               \
         int32_t int32_value;                                        \
-        if ( stream->IsWriting )                                    \
+        if ( stream->Type == StreamType::Write )                                    \
         {                                                           \
             int32_value = (int32_t) value;                          \
         }                                                           \
@@ -47,7 +58,7 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
         {                                                           \
             return false;                                           \
         }                                                           \
-        if ( stream->IsReading )                                    \
+        if ( stream->Type == StreamType::Read )                                    \
         {                                                           \
             value = int32_value;                                    \
         }                                                           \
@@ -57,7 +68,7 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
     do                                                              \
     {                                                               \
         uint32_t uint32_value;                                        \
-        if ( stream->IsWriting )                                    \
+        if ( stream->Type == StreamType::Write )                                    \
         {                                                           \
             uint32_value = (uint32_t) value;                          \
         }                                                           \
@@ -65,7 +76,7 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
         {                                                           \
             return false;                                           \
         }                                                           \
-        if ( stream->IsReading )                                    \
+        if ( stream->Type == StreamType::Read )                                    \
         {                                                           \
             value = uint32_value;                                    \
         }                                                           \
@@ -84,7 +95,7 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
   do                                                                \
     {                                                               \
         uint32_t size;                                              \
-        if ( stream->IsWriting )                                    \
+        if ( stream->Type == StreamType::Write )                                    \
         {                                                           \
             size = vector.size();                                   \
         }                                                           \
@@ -103,12 +114,12 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
     do                                                              \
         {                                                           \
         uint32_t size;                                              \
-        if(stream->IsWriting)                                       \
+        if(stream->Type == StreamType::Write)                                       \
         {                                                           \
             size = vector.size();                                   \
         }                                                           \
         serialize_int32(stream, size);                              \
-        if(stream->IsReading)                                       \
+        if(stream->Type == StreamType::Read)                                       \
         {                                                           \
             if(vector.capacity() < size)                            \
             {                                                       \
@@ -117,7 +128,7 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
         }                                                           \
         for(int i = 0; i < size; i++)                               \
         {                                                           \
-            if (stream->IsWriting)                                  \
+            if (stream->Type == StreamType::Write)                                  \
             {                                                       \
                 vector.push_back({});                               \
             }                                                       \
@@ -128,127 +139,131 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
         }                                                           \
     } while(0)
 
+
+
 template <typename Stream>
-bool serialize_float_internal( Stream & stream,
-                               float & value )
+bool serialize_float_internal(Stream& stream,
+	float& value)
 {
-    union FloatInt
-    {
-        float float_value;
-        uint32_t int_value;
-    };
-    FloatInt tmp;
-    if ( stream->IsWriting )
-    {
-        tmp.float_value = value;
-    }
-    bool result = stream->SerializeUInt32( tmp.int_value );
-    if ( stream->IsReading )
-    {
-        value = tmp.float_value;
-    }
-    return result;
+	union FloatInt
+	{
+		float float_value;
+		uint32_t int_value;
+	};
+	FloatInt tmp;
+	if (stream->Type == StreamType::Write)
+	{
+		tmp.float_value = value;
+	}
+	bool result = stream->SerializeUInt32(tmp.int_value);
+	if (stream->Type == StreamType::Read)
+	{
+		value = tmp.float_value;
+	}
+	return result;
 }
 
 class BitReader
 {
 private:
-    uint64_t scratch = 0;
-    int scratch_bits = 0;
-    int total_bits;
-    int num_bits_read = 0;
-    int word_index = 0;
-    uint32_t * buffer;
+	uint64_t scratch = 0;
+	int scratch_bits = 0;
+	int total_bits;
+	int num_bits_read = 0;
+	int word_index = 0;
+	uint32_t* buffer;
 public:
-    BitReader(const uint8_t * buffer, int bytes)
-    {
-        this->buffer = (uint32_t*)buffer;
-        total_bits = bytes * 8;
-    }
+	BitReader(const uint8_t* buffer, int bytes)
+	{
+		this->buffer = (uint32_t*)buffer;
+		total_bits = bytes * 8;
+	}
 
-    uint32_t ReadBits(int bits)
-    {
-        if(scratch_bits < bits)
-        {
-            uint64_t temp = buffer[word_index++];
-            temp <<= scratch_bits;
-            scratch |= temp;
-            scratch_bits = 32;
-        }
-        uint32_t temp = 0;
-        temp |= scratch;
-        temp <<= (32 - bits);
-        temp >>= (32 - bits);
-        scratch >>= bits;
-        scratch_bits -= bits;
-        total_bits -= bits;
-        return temp;
-    }
+	uint32_t ReadBits(int bits)
+	{
+		if (scratch_bits < bits)
+		{
+			uint64_t temp = buffer[word_index++];
+			temp <<= scratch_bits;
+			scratch |= temp;
+			scratch_bits = 32;
+		}
+		uint32_t temp = 0;
+		temp |= scratch;
+		temp <<= (32 - bits);
+		temp >>= (32 - bits);
+		scratch >>= bits;
+		scratch_bits -= bits;
+		total_bits -= bits;
+		return temp;
+	}
 
-    void ReadBytes(char* arr, int bytes)
-    {
-        memcpy(arr, buffer + word_index, bytes);
-        word_index += ceil((double)bytes / 4);
-    }
+	void ReadBytes(char* arr, int bytes)
+	{
+		memcpy(arr, buffer + word_index, bytes);
+		word_index += ceil((double)bytes / 4);
+	}
 
-    bool WouldReadPastEnd(int bits)
-    {
-        return bits > total_bits;
-    }
+	bool WouldReadPastEnd(int bits)
+	{
+		return bits > total_bits;
+	}
 };
 
 class BitWriter
 {
 private:
-    uint64_t scratch = 0;
-    int scratch_bits = 0;
-    int word_index = 0;
-    uint32_t* buffer;
+	uint64_t scratch = 0;
+	int scratch_bits = 0;
+	int word_index = 0;
+	uint32_t* buffer;
 public:
-    BitWriter(uint8_t * buffer, int bytes)
-    {
-        this->buffer = (uint32_t*)buffer;
-    }
+	BitWriter(uint8_t* buffer, int bytes)
+	{
+		this->buffer = (uint32_t*)buffer;
+	}
 
-    void WriteBits(uint32_t value, int bits)
-    {
-        uint64_t temp = value;
-        temp <<= 32 + bits;
-        temp >>= 32 + bits;
-        temp <<= scratch_bits;
-        scratch |= temp;
-        scratch_bits += bits;
-        if(scratch_bits >= 32)
-        {
-            buffer[word_index++] |= scratch;
-            scratch >>= 32;
-            scratch_bits -= 32;
-        }
-    }
+	void WriteBits(uint32_t value, int bits)
+	{
+		uint64_t temp = value;
+		temp <<= 32 + bits;
+		temp >>= 32 + bits;
+		temp <<= scratch_bits;
+		scratch |= temp;
+		scratch_bits += bits;
+		if (scratch_bits >= 32)
+		{
+			buffer[word_index++] |= scratch;
+			scratch >>= 32;
+			scratch_bits -= 32;
+		}
+	}
 
-    void WriteBytes(char* arr, int bytes)
-    {
-        memcpy(buffer + word_index, arr, bytes);
-        word_index += ceil((double)bytes / 4);
-    }
+	void WriteBytes(char* arr, int bytes)
+	{
+		memcpy(buffer + word_index, arr, bytes);
+		word_index += ceil((double)bytes / 4);
+	}
 
-    void Flush()
-    {
-        buffer[word_index++] |= scratch;
-        scratch >>= 32;
-        scratch_bits -= 32;
-    }
+	void Flush()
+	{
+		buffer[word_index++] |= scratch;
+		scratch >>= 32;
+		scratch_bits -= 32;
+	}
 };
+
 
 class Stream
 {
 public:
-    enum { IsWriting = 0 };
-    enum { IsReading = 0 };
-    virtual bool SerializeInt32(int32_t & value) = 0;
-    virtual bool SerializeUInt32(uint32_t & value) = 0;
-    //virtual bool SerializeBytes(char* arr, uint32_t size);
-    virtual bool SerializeCharVector(std::vector<char>& vec, uint32_t size) = 0;
+	
+	StreamType Type;
+
+	virtual bool SerializeInt32(int32_t& value) = 0;
+	virtual bool SerializeUInt32(uint32_t& value) = 0;
+	//virtual bool SerializeBytes(char* arr, uint32_t size);
+	virtual bool SerializeCharVector(std::vector<char>& vec, uint32_t size) = 0;
 };
 
 class WriteStream32 : public Stream
@@ -257,15 +272,16 @@ private:
 	std::vector<uint32_t> buffer;
 
 public:
-	enum { IsWriting = 1 };
-	enum { IsReading = 0 };
+	
 
 	WriteStream32(std::vector<char> vector, uint32_t size = 0)
 	{
+		Type = Write;
 	}
 
 	WriteStream32()
 	{
+		Type = Write;
 	}
 
 	bool SerializeInt32(int32_t& value) override
@@ -284,8 +300,9 @@ public:
 	{
 		if (size % 4 != 0)
 			return false;
+		auto new_data_offset = buffer.size();
 		buffer.resize(buffer.size() + size / 4);
-		std::memcpy((buffer.data() + buffer.size()), vec.data(), size);
+		std::memcpy((buffer.data() + new_data_offset), vec.data(), size);
 		return true;
 	}
 
@@ -306,18 +323,20 @@ private:
 	std::vector<uint32_t> buffer;
 	uint32_t head;
 public:
-	enum { IsWriting = 0 };
-	enum { IsReading = 1 };
 
 	ReadStream32(std::vector<char>& vector, uint32_t size = 0)
 	{
-		buffer.resize(size / 4);
+		buffer.resize(vector.size() / 4);
 		std::memcpy(buffer.data(), vector.data(), vector.size());
 		head = 0;
+
+		Type = Read;
 	}
 
 	ReadStream32(uint32_t* buf, uint32_t s)
 	{
+		Type = Read;
+
 		buffer.resize(s);
 		std::memcpy(buffer.data(), buf, s * 4);
 		head = 0;
@@ -357,89 +376,49 @@ public:
 	}
 };
 
-class WriteStream : Stream
+template <typename T>
+bool serialize_vector2(Stream* stream, std::vector<T>& vector)
 {
-public:
 
-    enum { IsWriting = 1 };
-    enum { IsReading = 0 };
+	uint32_t size;
+	if (stream->Type == StreamType::Write)
+	{
+		size = vector.size();
+	}
+	//serialize_int32(stream, size);
 
-    WriteStream( uint8_t * buffer, int bytes ) : m_writer( buffer, bytes ) {}
+	uint32_t int32_value;
+	if (stream->Type == StreamType::Write)
+	{
+		int32_value = (int32_t)size;
+	}
+	if (!stream->SerializeUInt32(int32_value))
+	{
+		return false;
+	}
+	if (stream->Type == StreamType::Read)
+	{
+		size = int32_value;
+	}
 
-    bool SerializeInt32(int32_t & value) override
-    {
-        uint32_t unsigned_value = value - INT32_MIN;
-        m_writer.WriteBits( unsigned_value, 32 );
-        return true;
-    }
-
-    bool SerializeUInt32(uint32_t & value) override
-    {
-        m_writer.WriteBits( value, 32 );
-        return true;
-    }
-
-    bool SerializeBytes(char* arr, uint32_t size)
-    {
-        m_writer.WriteBytes(arr, size);
-        return true;
-    }
-
-    bool SerializeCharVector(std::vector<char>& vec, uint32_t size) override
-    {
-        return SerializeBytes(vec.data(), vec.size());
-    }
-
-private:
-
-    BitWriter m_writer;
-};
-
-class ReadStream : Stream
-{
-public:
-
-    enum { IsWriting = 0 };
-    enum { IsReading = 1 };
-
-    ReadStream( const uint8_t * buffer, int bytes ) : m_reader( buffer, bytes ) {}
-
-    bool SerializeInt32(int32_t & value) override
-    {
-        if ( m_reader.WouldReadPastEnd(32) )
-        {
-            return false;
-        }
-        uint32_t unsigned_value = m_reader.ReadBits( 32 );
-        value = (int32_t) unsigned_value + INT32_MIN;
-        return true;
-    }
-
-    bool SerializeUInt32(uint32_t & value) override
-    {
-        if ( m_reader.WouldReadPastEnd(32) )
-        {
-            return false;
-        }
-        value = m_reader.ReadBits( 32 );
-        return true;
-    }
-
-    bool SerializeBytes(char* arr, uint32_t size)
-    {
-        m_reader.ReadBytes(arr, size);
-        return true;
-    }
-
-    bool SerializeCharVector(std::vector<char>& vec, uint32_t size) override
-    {
-        vec.resize(size);
-        return SerializeBytes(vec.data(), vec.size());
-    }
-
-private:
-
-    BitReader m_reader;
-};
+	if (stream->Type == StreamType::Read)
+	{
+		if (vector.capacity() < size)
+		{
+			vector.resize(size);
+		}
+	}
+	for (int i = 0; i < size; i++)
+	{
+		//if (stream->Type == StreamType::Write)
+		//{
+		//	vector.push_back({});
+		//}
+		if (!vector[i].Serialize(stream))
+		{
+			return false;
+		}
+	}
+}
 
 #endif //SPLATTER_SERIALIZATION_H

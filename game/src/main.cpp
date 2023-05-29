@@ -181,6 +181,8 @@ int main(int argc, char* argv[])
     }
     int own_id = spt::deserialize<player_base_info_packet>(wp.data).id;
 
+   
+
     std::vector<Player*> players;
 
     while(t != PacketType::PLAYERS_POSITIONS)
@@ -188,8 +190,12 @@ int main(int argc, char* argv[])
         wp = c->receive();
         t = wp.type;
     }
-    auto players_positions =
-            spt::deserialize<players_positions_packet>(wp.data).players;
+
+    auto players_positions_pckt =
+        spt::deserialize<players_positions_packet>(wp.data);
+        
+    auto players_positions = players_positions_pckt.players;
+
 
     for(auto & player_position : players_positions)
     {
@@ -202,6 +208,9 @@ int main(int argc, char* argv[])
         }
     }
 
+
+
+    
     bool quit = false;
     SDL_Event e;
 

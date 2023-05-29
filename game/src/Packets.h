@@ -100,7 +100,7 @@ struct players_positions_packet {
 
     template<typename Stream> bool Serialize(Stream & stream)
     {
-        serialize_vector(stream, players);
+        serialize_vector2(stream, players);
         return true;
     }
 };

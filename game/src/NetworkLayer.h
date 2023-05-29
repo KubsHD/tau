@@ -74,7 +74,7 @@ public:
         std::vector<ENetPacket*> packets;
         for(ENetPeer* client : clients)
         {
-            packets.push_back(enet_packet_create(buf, size, ENET_PACKET_FLAG_NO_ALLOCATE));
+            packets.push_back(enet_packet_create(buf, size, ENET_PACKET_FLAG_RELIABLE));
             enet_peer_send(client, 0, packet);
         }
         enet_host_flush (server);
@@ -95,14 +95,14 @@ public:
 
             auto raw_data = spt::serialize(p);
 
-			packets.push_back(enet_packet_create(raw_data.data(), raw_data.size(), 0));
+			packets.push_back(enet_packet_create(raw_data.data(), raw_data.size(), ENET_PACKET_FLAG_RELIABLE));
 			enet_peer_send(client, 0, packets.back());
 		}
 		enet_host_flush(server);
-		//        for(ENetPacket* packet_ : packets)
-		//        {
-		//            enet_packet_destroy(packet_);
-		//        }
+		for(ENetPacket* packet_ : packets)
+		{
+		    enet_packet_destroy(packet_);
+		}
 		return true;
 	}
 
@@ -110,7 +110,7 @@ public:
     {
         auto raw_data = spt::serialize(p);
 
-        auto ep = enet_packet_create(raw_data.data(), raw_data.size(), ENET_PACKET_FLAG_NO_ALLOCATE);
+        auto ep = enet_packet_create(raw_data.data(), raw_data.size(), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send(client, 0, ep);
 
         enet_host_flush(server);
@@ -239,7 +239,7 @@ public:
 //            packet = NULL;
 //        }
 
-        packet = enet_packet_create (data.data(), data.size(), ENET_PACKET_FLAG_NO_ALLOCATE);
+        packet = enet_packet_create (data.data(), data.size(), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send (peer, 0, packet);
         enet_host_flush (client);
         //enet_packet_destroy(packet);
