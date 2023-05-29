@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
     c->connect("127.0.0.1", "1234");
     new_player_packet pp;
     //Packet wp = WRAP_PACKET(PacketType::NEW_PLAYER, pp);
-    Packet wp = WRAP_PACKET(2222, pp);
+    Packet wp = WRAP_PACKET(PacketType::NEW_PLAYER, pp);
     c->send(wp);
 
     //xddddddd
@@ -183,7 +183,7 @@ int main(int argc, char* argv[])
 
     //here the player waits for the server to assign it unique id
     int t = PacketType::PACKET_EMPTY;
-    while(t != 2137)
+    while(t != PacketType::PLAYER_INFO)
     {
         wp = c->receive();
         t = wp.type;
@@ -192,7 +192,7 @@ int main(int argc, char* argv[])
 
     std::vector<Player*> players;
 
-    while(t != 3127)
+    while(t != PacketType::PLAYERS_POSITIONS)
     {
         wp = c->receive();
         t = wp.type;
@@ -272,9 +272,9 @@ int main(int argc, char* argv[])
         //Clear screen
         SDL_RenderClear(renderer);
 
-        for (auto p : players)
+        for (auto p_ : players)
         {
-            p->Render(renderer);
+            p_->Render(renderer);
         }
 
         glm::vec2 b_pos;

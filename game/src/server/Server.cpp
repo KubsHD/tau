@@ -27,15 +27,14 @@ void Server::Run()
 		data = s->receive();
         printf("Received packet with type %d\n", data.type);
         switch (data.type) {
-            case 2222:
+            case PacketType::NEW_PLAYER:
             {
                 //This works under the assumption that after a client connects,
                 //server receives PLAYER_INFO packet before another client connects
                 players.push_back(new Player(NULL, 0, 0));
                 players.back()->id = players.size() - 1;
                 player_base_info_packet bp = {players.back()->id};
-                //Packet p = WRAP_PACKET(PacketType::PLAYER_INFO, bp);
-                Packet p = WRAP_PACKET(2137, bp);
+                Packet p = WRAP_PACKET(PacketType::PLAYER_INFO, bp);
                 s->broadcast(p);
                 if(players.size() == 2)
                 {
@@ -45,8 +44,7 @@ void Server::Run()
                     {
                         temp.players.push_back(create_player_position_packet(*p_));
                     }
-                    //Packet p2 = WRAP_PACKET(PacketType::PLAYERS_POSITIONS, temp);
-                    Packet p2 = WRAP_PACKET(3127, temp);
+                    Packet p2 = WRAP_PACKET(PacketType::PLAYERS_POSITIONS, temp);
                     s->broadcast(p2);
                 }
                 break;

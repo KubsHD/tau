@@ -93,7 +93,7 @@ public:
 
             auto raw_data = spt::serialize(p);
 
-			packets.push_back(enet_packet_create(raw_data.data(), raw_data.size(), ENET_PACKET_FLAG_NO_ALLOCATE));
+			packets.push_back(enet_packet_create(raw_data.data(), raw_data.size(), 0));
 			enet_peer_send(client, 0, packets.back());
 		}
 		enet_host_flush(server);
