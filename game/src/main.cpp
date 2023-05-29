@@ -21,7 +21,7 @@
 #include <thread>
 #include <iostream>
 #include <server/Server.h>
-#include <PacketTypes.h>
+#include <Packets.h>
 #include <sstream>
 
 #include <core/Window.h>
@@ -81,32 +81,25 @@ const char* get_real_path(const char* vpath)
 namespace spt
 {
 
-	Packet create_player_packet(const Player& p)
-	{
-        Packet pa;
-        pa.type = PacketType::PLAYER_MOVE;
-
-        player_move_packet pmp = {
-                (float )p.rect.x, (float )p.rect.y
-		};
-
-        pa.data.resize(sizeof(player_move_packet));
-
-        auto wr = new WriteStream((uint8_t *)pa.data.data(), pa.data.size());
-
-        pmp.Serialize(wr);
-
-        return pa;
-	}
-}
-
-
-void handle_player_move_packet(Packet& pa, Player* player)
-{
-	player_move_packet p = spt::deserialize<player_move_packet>(pa.data);
-
-    player->rect.x = p.x;
-    player->rect.y = p.y;
+//	Packet create_player_packet(const Player& p)
+//	{
+//        Packet pa;
+//        pa.type = PacketType::PLAYER_MOVE;
+//
+//        player_move_packet pmp = {
+//                p.id,
+//                (float )p.rect.x,
+//                (float )p.rect.y
+//		};
+//
+//        pa.data.resize(sizeof(player_move_packet));
+//
+//        auto wr = new WriteStream((uint8_t *)pa.data.data(), pa.data.size());
+//
+//        pmp.Serialize(wr);
+//
+//        return pa;
+//	}
 }
 
 int main(int argc, char* argv[])
@@ -126,11 +119,9 @@ int main(int argc, char* argv[])
 
     EnetClient* c = new EnetClient();
     c->connect("127.0.0.1", "1234");
-
-    char* my_data = (char*)calloc(1, sizeof(SDL_Rect) + sizeof(char));
-    my_data[0] = nickname.c_str()[0];
-    
-    Packet their_data;
+    new_player_packet pp;
+    Packet wp = WRAP_PACKET(PacketType::NEW_PLAYER, pp);
+    c->send(wp);
 
     spt::scope<Window> window;
     SDL_Renderer* renderer = NULL;
@@ -153,16 +144,47 @@ int main(int argc, char* argv[])
 
     std::vector<Bullet*> bullets;
 
-    Player* gamer;
-    Player* other_gamer;
-    if(nickname.c_str()[0] == 'a')
+//    Player* gamer;
+//    Player* other_gamer;
+//    if(nickname.c_str()[0] == 'a')
+//    {
+//        gamer = new Player(burgir, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+//        other_gamer = new Player(steak, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+//    } else
+//    {
+//        other_gamer = new Player(burgir, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+//        gamer = new Player(steak, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+//    }
+
+
+    //here the player waits for the server to assign it unique id
+    int t = PacketType::PACKET_EMPTY;
+    while(t != PacketType::PLAYER_INFO)
     {
-        gamer = new Player(burgir, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
-        other_gamer = new Player(steak, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
-    } else
+        wp = c->receive();
+        t = wp.type;
+    }
+    int own_id = spt::deserialize<player_base_info_packet>(wp.data).id;
+
+    std::vector<Player*> players;
+
+    while(t != PacketType::PLAYERS_POSITIONS)
     {
-        other_gamer = new Player(burgir, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
-        gamer = new Player(steak, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
+        wp = c->receive();
+        t = wp.type;
+    }
+    auto players_positions =
+            spt::deserialize<players_positions_packet>(wp.data).players;
+
+    for(auto & player_position : players_positions)
+    {
+        if(player_position.id == own_id)
+        {
+            players.push_back(new Player(burgir, 0, 0, player_position.id));
+        } else
+        {
+            players.push_back(new Player(steak, 0, 0, player_position.id));
+        }
     }
 
     bool quit = false;
@@ -183,46 +205,61 @@ int main(int argc, char* argv[])
             {
                 int x, y;
                 SDL_GetMouseState(&x,&y);
-                bullets.push_back(new Bullet(x, y, cookie, gamer));
+                bullets.push_back(new Bullet(x, y, cookie, players[own_id]));
             }
         }
 
-        auto packet = spt::create_player_packet(*gamer);
+        auto packet = create_player_position_packet(*players[own_id]);
+        Packet p = WRAP_PACKET(PacketType::PLAYER_POSITION, packet);
 
-
-
-        c->send(packet);
+        c->send(p);
 
         const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
 
-        gamer->Move(currentKeyStates);
+        players[own_id]->Move(currentKeyStates);
 
         Packet rec;
 
         rec = c->receive();
 
-        if (rec.data.size() > 0)
+        while (!rec.data.empty())
         {
 
             switch (rec.type) {
-            case PacketType::PLAYER_MOVE:
-                handle_player_move_packet(rec, other_gamer);
+                case PacketType::PLAYER_POSITION:
+                {
+                    break;
+                }
+                case PacketType::PLAYERS_POSITIONS:
+                {
+                    auto temp =
+                            spt::deserialize<players_positions_packet>(wp.data).players;
+
+                    for(int i = 0; i < temp.size(); i++)
+                    {
+                        handle_player_position_packet(temp[i], *players[i]);
+                    }
+                    break;
+                }
             }
+            rec = c->receive();
         }
 
         //Clear screen
         SDL_RenderClear(renderer);
 
-        gamer->Render(renderer);
-        other_gamer->Render(renderer);
+        for (auto p : players)
+        {
+            p->Render(renderer);
+        }
 
         glm::vec2 b_pos;
 
         auto it = std::remove_if(bullets.begin(), bullets.end(), [](Bullet* b){
             glm::vec2 b_pos;
             b_pos = b->get_position();
-            if(b_pos.x < 0 - b->rect.w || b_pos.x > SCREEN_WIDTH
-               || b_pos.y < 0 - b->rect.h || b_pos.y > SCREEN_HEIGHT)
+            if(b_pos.x < 0 - b->GetWidth() || b_pos.x > SCREEN_WIDTH
+               || b_pos.y < 0 - b->GetHeight() || b_pos.y > SCREEN_HEIGHT)
             {
                 return true;
             }

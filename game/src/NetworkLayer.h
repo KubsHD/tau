@@ -11,96 +11,8 @@
 #include "Player.h"
 #include <sstream>
 #include <Serialization.h>
+#include "Packets.h"
 
-struct Packet {
-    int type;
-	std::vector<char> data;
-
-    template<typename Stream> bool Serialize(Stream & stream)
-    {
-        serialize_int32(stream, type);
-        serialize_char_vector(stream, data, data.size());
-        return true;
-    }
-};
-
-struct player_move_packet {
-    float x;
-    float y;
-
-    template<typename Stream> bool Serialize(Stream & stream)
-    {
-        serialize_float32(stream, x);
-        serialize_float32(stream, x);
-        return true;
-    }
-};
-
-namespace spt
-{
-    template<typename T>
-    T deserialize(std::vector<char> vec)
-    {
-        T packet;
-        auto rd = new ReadStream32(vec, vec.size());
-        packet.Serialize(rd);
-        return packet;
-    }
-
-    template<typename T>
-    std::vector<char> serialize(T packet)
-    {
-        auto vec = std::vector<char>();
-        auto wr = new WriteStream32(vec);
-        packet.Serialize(wr);
-        return vec;
-    }
-//    template<typename T>
-//    T deserialize(std::vector<char> vec)
-//    {
-//        T packet;
-//        auto rd = new ReadStream((uint8_t*)vec.data(), vec.size());
-//        packet.Serialize(rd);
-//        return packet;
-//    }
-//
-//    template<typename T>
-//    std::vector<char> serialize(T packet)
-//    {
-//        auto vec = std::vector<char>(sizeof(T));
-//        auto wr = new WriteStream((uint8_t*)vec.data(), sizeof(T));
-//        packet.Serialize(wr);
-//        return vec;
-//    }
-}
-
-
-namespace net {
-
-
-
-//    std::vector<char> serialize_packet(Packet& p)
-//    {
-//        std::vector<char> data;
-//        data.push_back(p.type);
-//		data.push_back(p.size);
-//		data.push_back(p.size);
-//
-//		for (int i = 0; i < p.size; i++)
-//		{
-//			data.push_back(p.data[i]);
-//		}
-//
-//		return data;
-//    }
-//
-//    Packet deserialize_packet(std::vector<char> data)
-//    {
-//        int curr_byte = 0;
-//
-//        Packet p;
-//    }
-}
 
 class SocketClient {
 public:
@@ -142,9 +54,9 @@ private:
     ENetHost* server = NULL;
     ENetAddress address;
     ENetEvent event;
-    std::vector <ENetPeer*> clients;
     ENetPacket* packet = NULL;
 public:
+    std::vector <ENetPeer*> clients;
     bool init(const char* address_string, const char* port_string, int max_clients) override
     {
         enet_address_set_host(&address, address_string);
@@ -191,6 +103,21 @@ public:
 		//        }
 		return true;
 	}
+
+    bool send(Packet p, ENetPeer* client)
+    {
+        auto raw_data = spt::serialize(p);
+
+        auto ep = enet_packet_create(raw_data.data(), raw_data.size(), ENET_PACKET_FLAG_NO_ALLOCATE);
+        enet_peer_send(client, 0, ep);
+
+        enet_host_flush(server);
+        //        for(ENetPacket* packet_ : packets)
+        //        {
+        //            enet_packet_destroy(packet_);
+        //        }
+        return true;
+    }
     
    
 
@@ -238,6 +165,7 @@ public:
                     break;
                 case ENET_EVENT_TYPE_CONNECT:
                     clients.push_back(event.peer);
+                    return NULL;
                     break;
                 default:
                     break;

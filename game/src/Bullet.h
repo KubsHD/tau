@@ -10,8 +10,6 @@ class Bullet : public GameObject {
 private:
     float vx;
     float vy;
-    float x;
-    float y;
     int speed = 8;
 public:
     Bullet(int mx, int my, Texture* texture, Player* player);

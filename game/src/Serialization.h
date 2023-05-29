@@ -53,13 +53,13 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
         }                                                           \
      } while (0)
 
-#define serialize_float32( stream, value )                           \
-  do                                                                 \
-  {                                                                  \
-      if ( !serialize_float_internal( stream, value ) )              \
-      {                                                              \
-          return false;                                              \
-      }                                                              \
+#define serialize_float32( stream, value )                          \
+  do                                                                \
+  {                                                                 \
+      if ( !serialize_float_internal( stream, value ) )             \
+      {                                                             \
+          return false;                                             \
+      }                                                             \
 } while (0)
 
 #define serialize_char_vector( stream, vector, bytes )              \
@@ -80,6 +80,32 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
         }                                                           \
                                                                     \
      } while (0)
+
+#define serialize_vector( stream, vector )                          \
+    do                                                              \
+        {                                                           \
+        uint32_t size;                                              \
+        if(stream->IsWriting)                                       \
+        {                                                           \
+            size = vector.size();                                   \
+        }                                                           \
+        serialize_int32(stream, size);                              \
+        if(stream->IsReading)                                       \
+        {                                                           \
+            if(vector.capacity() < size)                            \
+            {                                                       \
+            vector.resize(size);                                    \
+            }                                                       \
+        }                                                           \
+        for(int i = 0; i < size; i++)                               \
+        {                                                           \
+            vector.push_back({});                                   \
+            if(!vector[i].Serialize(stream))                        \
+            {                                                       \
+                return false;                                       \
+            }                                                       \
+        }                                                           \
+    } while(0)
 
 template <typename Stream>
 bool serialize_float_internal( Stream & stream,

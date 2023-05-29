@@ -3,12 +3,10 @@
 #include <glm/glm.hpp>
 
 Bullet::Bullet(int mx, int my, Texture* texture, Player* player)
-: GameObject(texture, player->rect.x, player->rect.y)
+: GameObject(texture, player->GetX(), player->GetY())
 {
-    x = (float)player->rect.x;
-    y = (float)player->rect.y;
-    float vx_ = (float)mx - x - (float)player->rect.w / 2;
-    float vy_ = (float)my - y - (float)player->rect.h / 2;
+    float vx_ = (float)mx - x - (float)player->GetWidth() / 2;
+    float vy_ = (float)my - y - (float)player->GetHeight() / 2;
     float length = sqrt(vx_ * vx_ + vy_ * vy_);
     vx = speed * vx_ / length;
     vy = speed * vy_ / length;

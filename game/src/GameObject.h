@@ -6,11 +6,21 @@
 
 
 class GameObject {
+protected:
+    SDL_Rect rect;
+    float x;
+    float y;
 public:
     Texture* texture;
-    SDL_Rect rect;
     GameObject(Texture* texture, int x, int y);
     void Render(SDL_Renderer* renderer);
+    SDL_Rect GetRect();
+    float GetX() const;
+    float GetY() const;
+    void SetX(float value);
+    void SetY(float volue);
+    int GetHeight() const;
+    int GetWidth() const;
 };
 
 
