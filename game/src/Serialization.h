@@ -117,7 +117,10 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
         }                                                           \
         for(int i = 0; i < size; i++)                               \
         {                                                           \
-            vector.push_back({});                                   \
+            if (stream->IsWriting)                                  \
+            {                                                       \
+                vector.push_back({});                               \
+            }                                                       \
             if(!vector[i].Serialize(stream))                        \
             {                                                       \
                 return false;                                       \
@@ -245,133 +248,113 @@ public:
     virtual bool SerializeInt32(int32_t & value) = 0;
     virtual bool SerializeUInt32(uint32_t & value) = 0;
     //virtual bool SerializeBytes(char* arr, uint32_t size);
-    virtual bool SerializeCharVector(std::vector<char> vec, uint32_t size) = 0;
+    virtual bool SerializeCharVector(std::vector<char>& vec, uint32_t size) = 0;
 };
 
 class WriteStream32 : public Stream
 {
 private:
-    uint32_t* buffer;
-    uint32_t head;
-    uint32_t capacity;
+	std::vector<uint32_t> buffer;
+
 public:
-    enum { IsWriting = 1 };
-    enum { IsReading = 0 };
+	enum { IsWriting = 1 };
+	enum { IsReading = 0 };
 
-    WriteStream32(std::vector<char> vector, uint32_t size = 0)
-    {
-        buffer = (uint32_t*)vector.data();
-    }
+	WriteStream32(std::vector<char> vector, uint32_t size = 0)
+	{
+	}
 
-    WriteStream32()
-    {
-        head = 0;
-        capacity = 0;
-    }
+	WriteStream32()
+	{
+	}
 
-    ~WriteStream32()
-    {
-        free(buffer);
-    }
+	bool SerializeInt32(int32_t& value) override
+	{
+		uint32_t uvalue = value - INT32_MIN;
+		return SerializeUInt32(uvalue);
+	}
 
-    bool SerializeInt32(int32_t & value) override
-    {
-        uint32_t uvalue = value - INT32_MIN;
-        return SerializeUInt32(uvalue);
-    }
+	bool SerializeUInt32(uint32_t& value) override
+	{
+		buffer.push_back(value);
+		return true;
+	}
 
-    bool SerializeUInt32(uint32_t & value) override
-    {
-        check_for_space(buffer, capacity, head + 1)
-        buffer[head++] = value;
-        return true;
-    }
+	bool SerializeCharVector(std::vector<char>& vec, uint32_t size) override
+	{
+		if (size % 4 != 0)
+			return false;
+		buffer.resize(buffer.size() + size / 4);
+		std::memcpy((buffer.data() + buffer.size()), vec.data(), size);
+		return true;
+	}
 
-    bool SerializeCharVector(std::vector<char> vec, uint32_t size) override
-    {
-        if(size % 4 != 0)
-            return false;
-        check_for_space(buffer, capacity, head + size / 4)
-        std::memcpy(buffer + head, vec.data(), size);
-        head += size / 4;
-        return true;
-    }
+	uint32_t* GetBuffer()
+	{
+		return buffer.data();
+	}
 
-    uint32_t* GetBuffer()
-    {
-        return buffer;
-    }
-
-    uint32_t GetSize() const
-    {
-        return head;
-    }
+	uint32_t GetSize() const
+	{
+		return buffer.size();
+	}
 };
 
 class ReadStream32 : public Stream
 {
 private:
-    uint32_t* buffer;
-    uint32_t head;
-    uint32_t capacity;
+	std::vector<uint32_t> buffer;
+	uint32_t head;
 public:
-    enum { IsWriting = 0 };
-    enum { IsReading = 1 };
+	enum { IsWriting = 0 };
+	enum { IsReading = 1 };
 
-    ReadStream32(std::vector<char> vector, uint32_t size = 0)
-    {
-        //buffer = (uint32_t*) vector.data();
-        head = 0;
-        capacity = vector.size() / 4;
-        if(capacity == 0)
-            return;
-        buffer = (uint32_t*) malloc(capacity);
-        std::memcpy(buffer, vector.data(), vector.size());
-    }
+	ReadStream32(std::vector<char>& vector, uint32_t size = 0)
+	{
+		buffer.resize(size / 4);
+		std::memcpy(buffer.data(), vector.data(), vector.size());
+		head = 0;
+	}
 
-    ReadStream32(uint32_t* buf, uint32_t s)
-    {
-        buffer = buf;
-        capacity = s;
-        head = 0;
-    }
+	ReadStream32(uint32_t* buf, uint32_t s)
+	{
+		buffer.resize(s);
+		std::memcpy(buffer.data(), buf, s * 4);
+		head = 0;
+	}
 
-    ~ReadStream32()
-    {
-        free(buffer);
-    }
 
-    bool SerializeInt32(int32_t & value) override
-    {
-        uint32_t uvalue;
-        if(!SerializeUInt32(uvalue))
-        {
-            return false;
-        }
-        value = uvalue + INT32_MIN;
-        return true;
-    }
+	bool SerializeInt32(int32_t& value) override
+	{
+		uint32_t uvalue;
+		if (!SerializeUInt32(uvalue))
+		{
+			return false;
+		}
+		value = uvalue + INT32_MIN;
+		return true;
+	}
 
-    bool SerializeUInt32(uint32_t & value) override
-    {
-        check_for_enough_data(capacity - head, 1)
-        value = buffer[head++];
-        return true;
-    }
+	bool SerializeUInt32(uint32_t& value) override
+	{
+		check_for_enough_data(buffer.size() - head, 1)
+			value = buffer[head++];
+		return true;
+	}
 
-    bool SerializeCharVector(std::vector<char> vec, uint32_t size) override
-    {
-        if(size % 4 != 0)
-            return false;
-        check_for_enough_data(capacity - head, size / 4);
-        if(vec.capacity() < size)
-        {
-            vec.resize(size);
-        }
-        std::memcpy(vec.data(), buffer + head, size);
-        head += size / 4;
-        return true;
-    }
+	bool SerializeCharVector(std::vector<char>& vec, uint32_t size) override
+	{
+		if (size % 4 != 0)
+			return false;
+		check_for_enough_data(buffer.size() - head, size / 4);
+		if (vec.capacity() < size)
+		{
+			vec.resize(size);
+		}
+		std::memcpy(vec.data(), buffer.data() + head, size);
+		head += size / 4;
+		return true;
+	}
 };
 
 class WriteStream : Stream
@@ -402,7 +385,7 @@ public:
         return true;
     }
 
-    bool SerializeCharVector(std::vector<char> vec, uint32_t size) override
+    bool SerializeCharVector(std::vector<char>& vec, uint32_t size) override
     {
         return SerializeBytes(vec.data(), vec.size());
     }
@@ -448,7 +431,7 @@ public:
         return true;
     }
 
-    bool SerializeCharVector(std::vector<char> vec, uint32_t size) override
+    bool SerializeCharVector(std::vector<char>& vec, uint32_t size) override
     {
         vec.resize(size);
         return SerializeBytes(vec.data(), vec.size());

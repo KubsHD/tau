@@ -111,41 +111,32 @@ int main(int argc, char* argv[])
     //enet
     enet_initialize();
 
-    std::thread server_thread([](){
+	std::thread server_thread([]() {
 		spt::scope<Server> s = spt::create_scope<Server>();
 		s->Run();
-    });
+		});
 
 
-    EnetClient* c = new EnetClient();
-    c->connect("127.0.0.1", "1234");
-    new_player_packet pp;
-    //Packet wp = WRAP_PACKET(PacketType::NEW_PLAYER, pp);
-    Packet wp = WRAP_PACKET(PacketType::NEW_PLAYER, pp);
-    c->send(wp);
+	EnetClient* c = new EnetClient();
+	c->connect("127.0.0.1", "1234");
+	new_player_packet pp{};
+	Packet wp = WRAP_PACKET(PacketType::NEW_PLAYER, pp);
+	//Packet wp = WRAP_PACKET(PacketType::NEW_PLAYER, pp);
+	c->send(wp);
 
-    //xddddddd
-//    auto w = new WriteStream32();
-//
-//    int a = 2137;
-//    int b = 0;
-//    serialize_int32(w, a);
-//    auto r = new ReadStream32(w->GetBuffer(), 8);
-//    serialize_int32(r, b);
-//    serialize_int32(w, a);
-//    serialize_int32(r, b);
-//
-//
-//    //xddd
-//    std::vector<char> vc;
-//    Packet test ={};// WRAP_PACKET(2137, pp);
-//    test.type = 2137;
-//    player_base_info_packet xd;
-//    while (1)
-//    {
-//        vc = spt::serialize(xd);
-//        xd = spt::deserialize<player_base_info_packet>(vc);
-//    }
+    //xddd
+    std::vector<char> vc;
+    Packet test ={};// WRAP_PACKET(2137, pp);
+    test.type = 6;
+    player_base_info_packet xd;
+    xd.id = 0;
+
+    player_base_info_packet xd2;
+    //while (1)
+    //{
+    //    vc = spt::serialize(xd);
+    //    xd2 = spt::deserialize<player_base_info_packet>(vc);
+    //}
 
     spt::scope<Window> window;
     SDL_Renderer* renderer = NULL;
@@ -214,6 +205,7 @@ int main(int argc, char* argv[])
     bool quit = false;
     SDL_Event e;
 
+    std::cout << "[CLIENT] Entering main loop!" << std::endl;
     while(!quit)
     {
         Uint64 start = SDL_GetPerformanceCounter();
@@ -248,6 +240,8 @@ int main(int argc, char* argv[])
 
         while (!rec.data.empty())
         {
+
+
 
             switch (rec.type) {
                 case PacketType::PLAYER_POSITION:
@@ -310,11 +304,11 @@ int main(int argc, char* argv[])
         SDL_Delay(delay < 16.666f && delay > 0 ? delay : 16.666f);
     }
 
-    #if WIN32
-    #include <Windows.h>
-	TerminateThread(server_thread.native_handle(), 0);
-	server_thread.detach();
-    #endif
+ //   #if WIN32
+ //   #include <Windows.h>
+	//TerminateThread(server_thread.native_handle(), 0);
+	//server_thread.detach();
+ //   #endif
 
 	SDL_Quit();
 

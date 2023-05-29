@@ -87,6 +87,8 @@ public:
 
 	bool broadcast(Packet p) override
 	{
+        std::cout << "[SERVER] " << "Sending packet with type: " << p.type << std::endl;
+
 		std::vector<ENetPacket*> packets;
 		for (ENetPeer* client : clients)
 		{
@@ -136,10 +138,12 @@ public:
                 {
                     std::vector<char> temp(event.packet->dataLength);
                     std::memcpy(temp.data(), event.packet->data, event.packet->dataLength);
-                    for(auto a : temp)
-                        printf("%c ", a);
-                    printf("\n");
-                    return spt::deserialize<Packet>(temp);
+                    //for(auto a : temp)
+                    //    printf("%c ", a);
+                    //printf("\n");
+                    auto p = spt::deserialize<Packet>(temp);
+                    enet_packet_destroy(event.packet);
+                    return p;
                     break;
                 }
                 case ENET_EVENT_TYPE_CONNECT:
@@ -223,6 +227,7 @@ public:
 
     bool send(Packet& p) override
     {
+		std::cout << "[CLIENT] " << "Sending packet with type: " << p.type << std::endl;
 
         std::vector<char> data = spt::serialize(p);
 
@@ -249,6 +254,8 @@ public:
             //enet_packet_destroy(packet);
             packet = NULL;
         }
+
+
         std::vector<char> vec;
         while (enet_host_service (client, &event, 0) > 0)
         {
@@ -256,10 +263,13 @@ public:
             switch (event.type)
             {
                 case ENET_EVENT_TYPE_RECEIVE:
+                    
                     packet = event.packet;
-                    vec = std::vector<char>((char*)packet->data, (char*)packet->data + packet->dataLength);
+                    vec = std::vector<char>(packet->data, packet->data + packet->dataLength);
                     ret = spt::deserialize<Packet>(vec);
                     vec.clear();
+		            std::cout << "[CLIENT] " << "Recieving packet with type: " << ret.type << std::endl;
+                    enet_packet_destroy(event.packet);
                     return ret;
                     break;
                 default:

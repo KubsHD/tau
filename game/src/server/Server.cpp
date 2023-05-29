@@ -25,7 +25,10 @@ void Server::Run()
         auto start = std::chrono::high_resolution_clock::now();
 
 		data = s->receive();
-        printf("Received packet with type %d\n", data.type);
+
+        if (data.type != 0)
+            printf("[SERVER] Received packet with type %d\n", data.type);
+        
         switch (data.type) {
             case PacketType::NEW_PLAYER:
             {
