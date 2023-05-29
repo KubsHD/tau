@@ -265,7 +265,8 @@ public:
 
     WriteStream32()
     {
-
+        head = 0;
+        capacity = 0;
     }
 
     ~WriteStream32()
@@ -322,6 +323,8 @@ public:
         //buffer = (uint32_t*) vector.data();
         head = 0;
         capacity = vector.size() / 4;
+        if(capacity == 0)
+            return;
         buffer = (uint32_t*) malloc(capacity);
         std::memcpy(buffer, vector.data(), vector.size());
     }

@@ -106,9 +106,11 @@ struct players_positions_packet {
 };
 
 struct new_player_packet {
+    int dummy_int;
 
     template<typename Stream> bool Serialize(Stream & stream)
     {
+        serialize_int32(stream, dummy_int);
         return true;
     }
 };
