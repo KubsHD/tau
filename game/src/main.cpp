@@ -187,6 +187,7 @@ int main(int argc, char* argv[])
     }
     int own_id = spt::deserialize<player_base_info_packet>(wp.data).id;
 
+    printf("I have Id: %d\n", own_id);
    
 
     std::vector<Player*> players;
@@ -202,20 +203,9 @@ int main(int argc, char* argv[])
         
     auto players_positions = players_positions_pckt.players;
 
+    players.push_back(new Player(burgir, 0, 0, players_positions[0].id));
 
-    for(auto & player_position : players_positions)
-    {
-        if(player_position.id == own_id)
-        {
-            players.push_back(new Player(burgir, 0, 0, player_position.id));
-        } else
-        {
-            players.push_back(new Player(steak, 0, 0, player_position.id));
-        }
-    }
-
-
-
+    players.push_back(new Player(steak, 0, 0, players_positions[1].id));
     
     bool quit = false;
     SDL_Event e;
@@ -255,9 +245,6 @@ int main(int argc, char* argv[])
 
         while (!rec.data.empty())
         {
-
-
-
             switch (rec.type) {
                 case PacketType::PLAYER_POSITION:
                 {

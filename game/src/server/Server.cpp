@@ -89,6 +89,8 @@ void Server::Run()
 				Packet p2 = {};
 				p2.type = PacketType::PLAYERS_POSITIONS;
 				p2.data = spt::serialize(temp);
+                //printf("P0 x:%d y:%d\n", temp.players[0].x, temp.players[0].y);
+                //printf("P0 x:%d y:%d\n", temp.players[1].x, temp.players[1].y);
 				s->broadcast(p2);
                 break;
             }
@@ -98,7 +100,7 @@ void Server::Run()
 //        std::chrono::duration<double, std::milli> time =
 //                std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
         
-        SDL_Delay(50);
+        //SDL_Delay(50);
 	}
 
 	return;
