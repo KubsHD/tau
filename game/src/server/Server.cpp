@@ -20,10 +20,31 @@ void Server::Run()
 		return;
 	}
 
+//    players_positions_packet pp;
+//    player_position_packet p1;
+//    player_position_packet p2;
+//    p1.id = 1;
+//    p1.x = 3.567;
+//    p1.y = 56.56;
+//    p2.id = 2;
+//    p2.x = 678.860;
+//    p2.y = 657.6575;
+//    pp.players.push_back(p1);
+//    pp.players.push_back(p2);
+//    std::vector<char> vec;
+//
+//    while (1)
+//    {
+//        vec = spt::serialize(pp);
+//        pp = spt::deserialize<players_positions_packet>(vec);
+//        printf("dupa\n");
+//    }
+
+
 	Packet data;
 	while (1)
 	{
-        auto start = std::chrono::high_resolution_clock::now();
+//        auto start = std::chrono::high_resolution_clock::now();
 
 		data = s->receive();
 
@@ -73,11 +94,11 @@ void Server::Run()
             }
         }
 
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> time =
-                std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+//        auto end = std::chrono::high_resolution_clock::now();
+//        std::chrono::duration<double, std::milli> time =
+//                std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
         
-        SDL_Delay(100);
+        SDL_Delay(50);
 	}
 
 	return;

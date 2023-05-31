@@ -34,7 +34,7 @@ public:
     /// send data to host to which the client is connected
     ///<[in] buffer with binary data 
     ///<[in] size of the buffer
-    virtual bool broadcast(char* buf, int size) = 0;
+    //virtual bool broadcast(char* buf, int size) = 0;
 
 	virtual bool broadcast(Packet p) = 0;
 
@@ -54,7 +54,6 @@ private:
     ENetHost* server = NULL;
     ENetAddress address;
     ENetEvent event;
-    ENetPacket* packet = NULL;
 public:
     std::vector <ENetPeer*> clients;
     bool init(const char* address_string, const char* port_string, int max_clients) override
@@ -69,21 +68,21 @@ public:
 
         return server != NULL;
     }
-    bool broadcast(char* buf, int size) override
-    {
-        std::vector<ENetPacket*> packets;
-        for(ENetPeer* client : clients)
-        {
-            packets.push_back(enet_packet_create(buf, size, ENET_PACKET_FLAG_RELIABLE));
-            enet_peer_send(client, 0, packet);
-        }
-        enet_host_flush (server);
-//        for(ENetPacket* packet_ : packets)
+//    bool broadcast(char* buf, int size) override
+//    {
+//        std::vector<ENetPacket*> packets;
+//        for(ENetPeer* client : clients)
 //        {
-//            enet_packet_destroy(packet_);
+//            packets.push_back(enet_packet_create(buf, size, ENET_PACKET_FLAG_RELIABLE));
+//            enet_peer_send(client, 0, packet);
 //        }
-        return true;
-    }
+//        enet_host_flush (server);
+////        for(ENetPacket* packet_ : packets)
+////        {
+////            enet_packet_destroy(packet_);
+////        }
+//        return true;
+//    }
 
 	bool broadcast(Packet p) override
 	{
@@ -99,10 +98,10 @@ public:
 			enet_peer_send(client, 0, packets.back());
 		}
 		enet_host_flush(server);
-		for(ENetPacket* packet_ : packets)
-		{
-		    enet_packet_destroy(packet_);
-		}
+//		for(ENetPacket* packet_ : packets)
+//		{
+//		    enet_packet_destroy(packet_);
+//		}
 		return true;
 	}
 
@@ -116,7 +115,7 @@ public:
         enet_peer_send(client, 0, ep);
 
         enet_host_flush(server);
-		enet_packet_destroy(ep);
+		//enet_packet_destroy(ep);
         return true;
     }
     
@@ -137,9 +136,6 @@ public:
                 {
                     std::vector<char> temp(event.packet->dataLength);
                     std::memcpy(temp.data(), event.packet->data, event.packet->dataLength);
-                    //for(auto a : temp)
-                    //    printf("%c ", a);
-                    //printf("\n");
                     auto p = spt::deserialize<Packet>(temp);
                     enet_packet_destroy(event.packet);
                     return p;
@@ -152,36 +148,36 @@ public:
                     break;
             }
         }
-        return Packet();
+        return {};
     }
 
-    char* receive_as_bytes()
-    {
-        if(packet != NULL)
-        {
-            //enet_packet_destroy(packet);
-            packet = NULL;
-        }
-        while (enet_host_service (server, &event, 1000) > 0)
-        {
-            switch (event.type)
-            {
-                case ENET_EVENT_TYPE_RECEIVE:
-                    packet = event.packet;
-                    return (char*)packet->data;
-                    break;
-                case ENET_EVENT_TYPE_CONNECT:
-
-					event.peer->data = (void*)"Client";
-                    clients.push_back(event.peer);
-                    return NULL;
-                    break;
-                default:
-                    break;
-            }
-        }
-        return NULL;
-    }
+//    char* receive_as_bytes()
+//    {
+//        if(packet != NULL)
+//        {
+//            //enet_packet_destroy(packet);
+//            packet = NULL;
+//        }
+//        while (enet_host_service (server, &event, 1000) > 0)
+//        {
+//            switch (event.type)
+//            {
+//                case ENET_EVENT_TYPE_RECEIVE:
+//                    packet = event.packet;
+//                    return (char*)packet->data;
+//                    break;
+//                case ENET_EVENT_TYPE_CONNECT:
+//
+//					event.peer->data = (void*)"Client";
+//                    clients.push_back(event.peer);
+//                    return NULL;
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }
+//        return NULL;
+//    }
 };
 
 class EnetClient : SocketClient {
@@ -189,7 +185,7 @@ private:
     ENetHost* client = NULL;
     ENetEvent event;
     ENetPeer* peer = NULL;
-    ENetPacket* packet;
+    //ENetPacket* packet;
 public:
     bool connect(const char* address_string, const char* port_string) override
     {
@@ -240,23 +236,17 @@ public:
 //            packet = NULL;
 //        }
 
-        packet = enet_packet_create (data.data(), data.size(), ENET_PACKET_FLAG_RELIABLE);
+        auto packet = enet_packet_create (data.data(), data.size(), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send (peer, 0, packet);
         enet_host_flush (client);
         //enet_packet_destroy(packet);
-        packet = NULL;
+        //packet = NULL;
         return true;
     }
 
     Packet receive() override
     {
-        if(packet != NULL)
-        {
-            //enet_packet_destroy(packet);
-            packet = NULL;
-        }
-
-
+        ENetPacket* packet;
         std::vector<char> vec;
         while (enet_host_service (client, &event, 0) > 0)
         {
@@ -280,27 +270,22 @@ public:
         return Packet();
     }
 
-    char* receive_as_bytes()
-    {
-        if(packet != NULL)
-        {
-            //enet_packet_destroy(packet);
-            packet = NULL;
-        }
-        while (enet_host_service (client, &event, 0) > 0)
-        {
-            switch (event.type)
-            {
-                case ENET_EVENT_TYPE_RECEIVE:
-                    packet = event.packet;
-                    return (char*)packet->data;
-                    break;
-                default:
-                    break;
-            }
-        }
-        return NULL;
-    }
+//    char* receive_as_bytes()
+//    {
+//        while (enet_host_service (client, &event, 0) > 0)
+//        {
+//            switch (event.type)
+//            {
+//                case ENET_EVENT_TYPE_RECEIVE:
+//                    packet = event.packet;
+//                    return (char*)packet->data;
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }
+//        return NULL;
+//    }
 };
 
 

@@ -29,7 +29,7 @@ namespace spt
     T deserialize(std::vector<char> vec)
     {
         T packet;
-        auto rd = new ReadStream32(vec, vec.size());
+        auto rd = ReadStream32(vec, vec.size());
         packet.Serialize(rd);
         return packet;
     }
@@ -37,10 +37,10 @@ namespace spt
     template<typename T>
     std::vector<char> serialize(T packet)
     {
-        auto wr = new WriteStream32();
+        auto wr = WriteStream32();
         packet.Serialize(wr);
-        auto vec = std::vector<char>(wr->GetSize() * 4);
-        std::memcpy(vec.data(), wr->GetBuffer(), wr->GetSize() * 4);
+        auto vec = std::vector<char>(wr.GetSize() * 4);
+        std::memcpy(vec.data(), wr.GetBuffer(), wr.GetSize() * 4);
         return vec;
     }
 }

@@ -111,10 +111,16 @@ int main(int argc, char* argv[])
     //enet
     enet_initialize();
 
-	std::thread server_thread([]() {
-		spt::scope<Server> s = spt::create_scope<Server>();
+//	std::thread server_thread([]() {
+//		spt::scope<Server> s = spt::create_scope<Server>();
+//		s->Run();
+//		});
+
+    if(strcmp(argv[1], "server") == 0)
+    {
+        spt::scope<Server> s = spt::create_scope<Server>();
 		s->Run();
-		});
+    }
 
 
 	EnetClient* c = new EnetClient();

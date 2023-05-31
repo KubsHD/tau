@@ -24,7 +24,7 @@ enum StreamType
 
 
 template <typename T>
-bool serialize_vector2(Stream& stream, std::vector<T> vector);
+bool serialize_vector2(Stream & stream, std::vector<T>& vector);
 
 inline int max_i(int a, int b) { return a > b ? a : b; }
 
@@ -50,15 +50,15 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
     do                                                              \
     {                                                               \
         int32_t int32_value;                                        \
-        if ( stream->Type == StreamType::Write )                                    \
+        if ( stream.Type == StreamType::Write )                                    \
         {                                                           \
             int32_value = (int32_t) value;                          \
         }                                                           \
-        if ( !stream->SerializeInt32( int32_value ) )               \
+        if ( !stream.SerializeInt32( int32_value ) )               \
         {                                                           \
             return false;                                           \
         }                                                           \
-        if ( stream->Type == StreamType::Read )                                    \
+        if ( stream.Type == StreamType::Read )                                    \
         {                                                           \
             value = int32_value;                                    \
         }                                                           \
@@ -68,15 +68,15 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
     do                                                              \
     {                                                               \
         uint32_t uint32_value;                                        \
-        if ( stream->Type == StreamType::Write )                                    \
+        if ( stream.Type == StreamType::Write )                                    \
         {                                                           \
             uint32_value = (uint32_t) value;                          \
         }                                                           \
-        if ( !stream->SerializeUInt32( uint32_value ) )               \
+        if ( !stream.SerializeUInt32( uint32_value ) )               \
         {                                                           \
             return false;                                           \
         }                                                           \
-        if ( stream->Type == StreamType::Read )                                    \
+        if ( stream.Type == StreamType::Read )                                    \
         {                                                           \
             value = uint32_value;                                    \
         }                                                           \
@@ -95,15 +95,15 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
   do                                                                \
     {                                                               \
         uint32_t size;                                              \
-        if ( stream->Type == StreamType::Write )                                    \
+        if ( stream.Type == StreamType::Write )                                    \
         {                                                           \
             size = vector.size();                                   \
         }                                                           \
-        if ( !stream->SerializeUInt32( size ) )                     \
+        if ( !stream.SerializeUInt32( size ) )                     \
         {                                                           \
             return false;                                           \
         }                                                           \
-        if ( !stream->SerializeCharVector( vector, size ))          \
+        if ( !stream.SerializeCharVector( vector, size ))          \
         {                                                           \
             return false;                                           \
         }                                                           \
@@ -114,12 +114,12 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
     do                                                              \
         {                                                           \
         uint32_t size;                                              \
-        if(stream->Type == StreamType::Write)                                       \
+        if(stream.Type == StreamType::Write)                                       \
         {                                                           \
             size = vector.size();                                   \
         }                                                           \
         serialize_int32(stream, size);                              \
-        if(stream->Type == StreamType::Read)                                       \
+        if(stream.Type == StreamType::Read)                                       \
         {                                                           \
             if(vector.capacity() < size)                            \
             {                                                       \
@@ -128,7 +128,7 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
         }                                                           \
         for(int i = 0; i < size; i++)                               \
         {                                                           \
-            if (stream->Type == StreamType::Write)                                  \
+            if (stream.Type == StreamType::Write)                                  \
             {                                                       \
                 vector.push_back({});                               \
             }                                                       \
@@ -151,12 +151,12 @@ bool serialize_float_internal(Stream& stream,
 		uint32_t int_value;
 	};
 	FloatInt tmp;
-	if (stream->Type == StreamType::Write)
+	if (stream.Type == StreamType::Write)
 	{
 		tmp.float_value = value;
 	}
-	bool result = stream->SerializeUInt32(tmp.int_value);
-	if (stream->Type == StreamType::Read)
+	bool result = stream.SerializeUInt32(tmp.int_value);
+	if (stream.Type == StreamType::Read)
 	{
 		value = tmp.float_value;
 	}
@@ -377,31 +377,31 @@ public:
 };
 
 template <typename T>
-bool serialize_vector2(Stream* stream, std::vector<T>& vector)
+bool serialize_vector2(Stream & stream, std::vector<T>& vector)
 {
 
 	uint32_t size;
-	if (stream->Type == StreamType::Write)
+	if (stream.Type == StreamType::Write)
 	{
 		size = vector.size();
 	}
 	//serialize_int32(stream, size);
 
 	uint32_t int32_value;
-	if (stream->Type == StreamType::Write)
+	if (stream.Type == StreamType::Write)
 	{
 		int32_value = (int32_t)size;
 	}
-	if (!stream->SerializeUInt32(int32_value))
+	if (!stream.SerializeUInt32(int32_value))
 	{
 		return false;
 	}
-	if (stream->Type == StreamType::Read)
+	if (stream.Type == StreamType::Read)
 	{
 		size = int32_value;
 	}
 
-	if (stream->Type == StreamType::Read)
+	if (stream.Type == StreamType::Read)
 	{
 		if (vector.capacity() < size)
 		{
