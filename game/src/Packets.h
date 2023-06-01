@@ -66,7 +66,7 @@ struct player_position_packet {
     {
         serialize_int32(stream, id);
         serialize_float32(stream, x);
-        serialize_float32(stream, x);
+        serialize_float32(stream, y);
         return true;
     }
 };

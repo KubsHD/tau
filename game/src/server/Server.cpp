@@ -20,25 +20,6 @@ void Server::Run()
 		return;
 	}
 
-//    players_positions_packet pp;
-//    player_position_packet p1;
-//    player_position_packet p2;
-//    p1.id = 1;
-//    p1.x = 3.567;
-//    p1.y = 56.56;
-//    p2.id = 2;
-//    p2.x = 678.860;
-//    p2.y = 657.6575;
-//    pp.players.push_back(p1);
-//    pp.players.push_back(p2);
-//    std::vector<char> vec;
-//
-//    while (1)
-//    {
-//        vec = spt::serialize(pp);
-//        pp = spt::deserialize<players_positions_packet>(vec);
-//        printf("dupa\n");
-//    }
 
 
 	Packet data;
@@ -89,8 +70,8 @@ void Server::Run()
 				Packet p2 = {};
 				p2.type = PacketType::PLAYERS_POSITIONS;
 				p2.data = spt::serialize(temp);
-                //printf("P0 x:%d y:%d\n", temp.players[0].x, temp.players[0].y);
-                //printf("P0 x:%d y:%d\n", temp.players[1].x, temp.players[1].y);
+                //printf("P0 x:%f y:%f\n", temp.players[0].x, temp.players[0].y);
+                //printf("P1 x:%f y:%f\n", temp.players[1].x, temp.players[1].y);
 				s->broadcast(p2);
                 break;
             }

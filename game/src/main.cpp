@@ -111,17 +111,19 @@ int main(int argc, char* argv[])
     //enet
     enet_initialize();
 
-//	std::thread server_thread([]() {
-//		spt::scope<Server> s = spt::create_scope<Server>();
-//		s->Run();
-//		});
+#if WIN32
 
+	std::thread server_thread([]() {
+		spt::scope<Server> s = spt::create_scope<Server>();
+		s->Run();
+	});
+#else
     if(strcmp(argv[1], "server") == 0)
     {
         spt::scope<Server> s = spt::create_scope<Server>();
 		s->Run();
     }
-
+#endif
 
 	EnetClient* c = new EnetClient();
 	c->connect("127.0.0.1", "1234");
@@ -203,10 +205,12 @@ int main(int argc, char* argv[])
         
     auto players_positions = players_positions_pckt.players;
 
-    players.push_back(new Player(burgir, 0, 0, players_positions[0].id));
+    players.push_back(new Player(burgir, 15, 20, players_positions[0].id));
 
-    players.push_back(new Player(steak, 0, 0, players_positions[1].id));
+    players.push_back(new Player(steak, 30,80, players_positions[1].id));
     
+
+
     bool quit = false;
     SDL_Event e;
 
@@ -253,7 +257,7 @@ int main(int argc, char* argv[])
                 case PacketType::PLAYERS_POSITIONS:
                 {
                     auto temp =
-                            spt::deserialize<players_positions_packet>(wp.data).players;
+                            spt::deserialize<players_positions_packet>(rec.data).players;
 
                     for(int i = 0; i < temp.size(); i++)
                     {
