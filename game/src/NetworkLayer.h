@@ -24,6 +24,8 @@ public:
     virtual bool send(Packet& p) = 0;
     /// receive data
     virtual Packet receive() = 0;
+
+	bool is_connected = false;
 };
 
 class SocketServer {
@@ -48,7 +50,7 @@ public:
     virtual Packet receive() = 0;
 };
 
-class EnetServer : SocketServer {
+class EnetServer : public SocketServer {
 private:
     static bool enet_initialized;
     ENetHost* server = NULL;
@@ -180,7 +182,7 @@ public:
 //    }
 };
 
-class EnetClient : SocketClient {
+class EnetClient : public SocketClient {
 private:
     ENetHost* client = NULL;
     ENetEvent event;

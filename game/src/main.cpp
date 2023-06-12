@@ -32,6 +32,7 @@
 #include <lib/cereal/archives/binary.hpp>
 #include <lib/cereal/archives/portable_binary.hpp>
 #include <core/Macros.h>
+#include <core/Input.h>
 
 SDL_Texture* loadTexture(std::string, SDL_Renderer*);
 
@@ -102,11 +103,108 @@ namespace spt
 //	}
 }
 
+void net_update(std::vector<Player*> players, int own_id, EnetClient* c)
+{
+    auto packet = create_player_position_packet(*players[own_id]);
+    Packet p = WRAP_PACKET(PacketType::PLAYER_POSITION, packet);
+
+    c->send(p);
+
+    const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
+
+    players[own_id]->Move(currentKeyStates);
+
+    Packet rec;
+
+    rec = c->receive();
+
+    while (!rec.data.empty())
+    {
+        switch (rec.type) {
+        case PacketType::PLAYER_POSITION:
+        {
+            break;
+        }
+        case PacketType::PLAYERS_POSITIONS:
+        {
+            auto temp =
+                spt::deserialize<players_positions_packet>(rec.data).players;
+
+            for (int i = 0; i < temp.size(); i++)
+            {
+                if (temp[i].id != own_id)
+                    handle_player_position_packet(temp[i], *players[i]);
+            }
+            break;
+        }
+        }
+        rec = c->receive();
+    }
+
+}
+
+int net_connect(EnetClient* c, std::vector<Player*>& players, Texture* burgir, Texture* steak)
+{
+    c->connect("127.0.0.1", "1234");
+    new_player_packet pp{};
+    Packet wp = WRAP_PACKET(PacketType::NEW_PLAYER, pp);
+    //Packet wp = WRAP_PACKET(PacketType::NEW_PLAYER, pp);
+    c->send(wp);
+
+    //xddd
+    std::vector<char> vc;
+    Packet test = {};// WRAP_PACKET(2137, pp);
+    test.type = 6;
+    player_base_info_packet xd;
+    xd.id = 0;
+
+    player_base_info_packet xd2;
+    //while (1)
+    //{
+    //    vc = spt::serialize(xd);
+    //    xd2 = spt::deserialize<player_base_info_packet>(vc);
+    //}
+
+
+        //here the player waits for the server to assign it unique id
+    int t = PacketType::PACKET_EMPTY;
+    while (t != PacketType::PLAYER_INFO)
+    {
+        wp = c->receive();
+        t = wp.type;
+    }
+    
+    int own_id = spt::deserialize<player_base_info_packet>(wp.data).id;
+
+    printf("I have Id: %d\n", own_id);
+
+
+
+    while (t != PacketType::PLAYERS_POSITIONS)
+    {
+        wp = c->receive();
+        t = wp.type;
+    }
+
+    auto players_positions_pckt =
+        spt::deserialize<players_positions_packet>(wp.data);
+
+    auto players_positions = players_positions_pckt.players;
+
+    players.push_back(new Player(burgir, 15, 20, players_positions[0].id));
+    players.push_back(new Player(steak, 30, 80, players_positions[1].id));
+
+    return own_id;
+
+}
+
 int main(int argc, char* argv[])
 {
     std::string nickname;
     //std::cin >> nickname;
+	std::vector<Player*> players;
 
+    int own_id = -1;
 
     //enet
     enet_initialize();
@@ -125,27 +223,8 @@ int main(int argc, char* argv[])
     }
 #endif
 
-	EnetClient* c = new EnetClient();
-	c->connect("127.0.0.1", "1234");
-	new_player_packet pp{};
-	Packet wp = WRAP_PACKET(PacketType::NEW_PLAYER, pp);
-	//Packet wp = WRAP_PACKET(PacketType::NEW_PLAYER, pp);
-	c->send(wp);
 
-    //xddd
-    std::vector<char> vc;
-    Packet test ={};// WRAP_PACKET(2137, pp);
-    test.type = 6;
-    player_base_info_packet xd;
-    xd.id = 0;
-
-    player_base_info_packet xd2;
-    //while (1)
-    //{
-    //    vc = spt::serialize(xd);
-    //    xd2 = spt::deserialize<player_base_info_packet>(vc);
-    //}
-
+    spt::scope<Input> input;
     spt::scope<Window> window;
     SDL_Renderer* renderer = NULL;
     SDL_Texture* t1 = NULL;
@@ -154,6 +233,7 @@ int main(int argc, char* argv[])
 
     //Create window
     window = spt::create_scope<Window>(SCREEN_WIDTH, SCREEN_HEIGHT, "Splatter");
+    input = spt::create_scope<Input>();
 
     //Create renderer
     renderer = SDL_CreateRenderer(window->get_ptr(), -1, SDL_RENDERER_ACCELERATED);
@@ -167,48 +247,7 @@ int main(int argc, char* argv[])
 
     std::vector<Bullet*> bullets;
 
-//    Player* gamer;
-//    Player* other_gamer;
-//    if(nickname.c_str()[0] == 'a')
-//    {
-//        gamer = new Player(burgir, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
-//        other_gamer = new Player(steak, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
-//    } else
-//    {
-//        other_gamer = new Player(burgir, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
-//        gamer = new Player(steak, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
-//    }
-
-
-    //here the player waits for the server to assign it unique id
-    int t = PacketType::PACKET_EMPTY;
-    while(t != PacketType::PLAYER_INFO)
-    {
-        wp = c->receive();
-        t = wp.type;
-    }
-    int own_id = spt::deserialize<player_base_info_packet>(wp.data).id;
-
-    printf("I have Id: %d\n", own_id);
-   
-
-    std::vector<Player*> players;
-
-    while(t != PacketType::PLAYERS_POSITIONS)
-    {
-        wp = c->receive();
-        t = wp.type;
-    }
-
-    auto players_positions_pckt =
-        spt::deserialize<players_positions_packet>(wp.data);
-        
-    auto players_positions = players_positions_pckt.players;
-
-    players.push_back(new Player(burgir, 15, 20, players_positions[0].id));
-
-    players.push_back(new Player(steak, 30,80, players_positions[1].id));
-    
+	EnetClient* c = new EnetClient();
 
 
     bool quit = false;
@@ -230,45 +269,24 @@ int main(int argc, char* argv[])
             {
                 int x, y;
                 SDL_GetMouseState(&x,&y);
-                bullets.push_back(new Bullet(x, y, cookie, players[own_id]));
+            }
+            else if (e.type == SDL_MOUSEWHEEL)
+            {
+                input->update_mouse_wheel(e.wheel);
             }
         }
 
-        auto packet = create_player_position_packet(*players[own_id]);
-        Packet p = WRAP_PACKET(PacketType::PLAYER_POSITION, packet);
+        input->update(e);
 
-        c->send(p);
-
-        const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
-
-        players[own_id]->Move(currentKeyStates);
-
-        Packet rec;
-
-        rec = c->receive();
-
-        while (!rec.data.empty())
+        if (c->is_connected)
         {
-            switch (rec.type) {
-                case PacketType::PLAYER_POSITION:
-                {
-                    break;
-                }
-                case PacketType::PLAYERS_POSITIONS:
-                {
-                    auto temp =
-                            spt::deserialize<players_positions_packet>(rec.data).players;
+            net_update(players, own_id, c);
 
-                    for(int i = 0; i < temp.size(); i++)
-                    {
-						if (temp[i].id != own_id)
-                            handle_player_position_packet(temp[i], *players[i]);
-                    }
-                    break;
-                }
-            }
-            rec = c->receive();
+			if (Input::mouse_down(0))
+				bullets.push_back(new Bullet(Input::get_mouse_pos().x, Input::get_mouse_pos().y, cookie, players[own_id]));
         }
+        else if (Input::key_down(SDL_SCANCODE_U))
+			own_id = net_connect(c, players, burgir, steak);
 
         //Clear screen
         SDL_RenderClear(renderer);
