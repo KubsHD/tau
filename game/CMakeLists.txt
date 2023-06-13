@@ -35,7 +35,7 @@ set_source_files_properties(game_SRC PROPERTIES LANGUAGE CXX)
 
 # link libraries
 
-set(game_libs enet SDL2-static SDL2main glm)
+set(game_libs enet SDL2-static SDL2main glm GameNetworkingSockets::static protobuf::libprotoc)
 
 if (WIN32)
 list(APPEND game_libs ws2_32 winmm)
@@ -63,6 +63,7 @@ target_link_libraries(splatter PRIVATE ${game_libs})
 target_compile_definitions(splatter PRIVATE _CRT_SECURE_NO_WARNINGS=1)
 target_include_directories(splatter PUBLIC "${PROJECT_SOURCE_DIR}/src")
 target_include_directories(splatter PUBLIC "${PROJECT_SOURCE_DIR}/src/lib")
+target_include_directories(splatter PUBLIC "${PROJECT_SOURCE_DIR}/../deps/GameNetworkingSockets/GameNetworkingSockets/include")
 
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

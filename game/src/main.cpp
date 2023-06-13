@@ -3,6 +3,9 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 
+#include <steam/isteamnetworkingsockets.h>
+#include <steam/steamnetworkingsockets.h>
+#include <steam/isteamnetworkingutils.h>
 #include <SDL.h>
 #include <enet/enet.h>
 #include <vector>
@@ -184,6 +187,10 @@ int net_connect(EnetClient* c, std::vector<Player*>& players, Texture* burgir, T
 
 int main(int argc, char* argv[])
 {
+    SteamDatagramErrMsg msg;
+	if (!GameNetworkingSockets_Init(nullptr, msg))
+		printf("GameNetworkingSockets_Init failed.  %s", msg);
+
     std::string nickname;
     //std::cin >> nickname;
 	std::vector<Player*> players;
@@ -199,6 +206,8 @@ int main(int argc, char* argv[])
 #if WIN32
 
 	std::thread server_thread([]() {
+
+
 		spt::scope<Server> s = spt::create_scope<Server>();
 		s->Run();
 	});
@@ -209,7 +218,6 @@ int main(int argc, char* argv[])
 		s->Run();
     }
 #endif
-
 
     spt::scope<Input> input;
     spt::scope<Window> window;
