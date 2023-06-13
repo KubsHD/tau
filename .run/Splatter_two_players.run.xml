@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Splatter_two_players" type="CompoundRunConfigurationType">
+    <toRun name="splatter" targetId="CMakeBuildProfile:Debug" type="CMakeRunConfiguration" />
+    <method v="2" />
+  </configuration>
+</component>
