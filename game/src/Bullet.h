@@ -10,7 +10,7 @@ class Bullet : public GameObject {
 private:
     float vx;
     float vy;
-    int speed = 8;
+    const int speed = 8;
 public:
     Bullet(int mx, int my, Texture* texture, Player* player);
     void Move();

@@ -36,7 +36,9 @@
 
 SDL_Texture* loadTexture(std::string, SDL_Renderer*);
 
-//static std::vector<ENetPeer*> g_remote_peers;
+struct World {
+    std::vector<Bullet*> Bullets;
+} world;
 
 const char* get_real_path(const char* vpath)
 {
@@ -79,30 +81,6 @@ const char* get_real_path(const char* vpath)
 }
 
 
-namespace spt
-{
-
-//	Packet create_player_packet(const Player& p)
-//	{
-//        Packet pa;
-//        pa.type = PacketType::PLAYER_MOVE;
-//
-//        player_move_packet pmp = {
-//                p.id,
-//                (float )p.rect.x,
-//                (float )p.rect.y
-//		};
-//
-//        pa.data.resize(sizeof(player_move_packet));
-//
-//        auto wr = new WriteStream((uint8_t *)pa.data.data(), pa.data.size());
-//
-//        pmp.Serialize(wr);
-//
-//        return pa;
-//	}
-}
-
 void net_update(std::vector<Player*> players, int own_id, EnetClient* c)
 {
     auto packet = create_player_position_packet(*players[own_id]);
@@ -137,6 +115,12 @@ void net_update(std::vector<Player*> players, int own_id, EnetClient* c)
             }
             break;
         }
+        case PacketType::BULLETS_POSITION_UPDATE:
+        {
+
+            break;
+        }
+
         }
         rec = c->receive();
     }
@@ -206,6 +190,9 @@ int main(int argc, char* argv[])
 
     int own_id = -1;
 
+    uint32_t tick;
+    
+
     //enet
     enet_initialize();
 
@@ -256,6 +243,7 @@ int main(int argc, char* argv[])
     std::cout << "[CLIENT] Entering main loop!" << std::endl;
     while(!quit)
     {
+
         Uint64 start = SDL_GetPerformanceCounter();
 
         //Handle events
@@ -298,6 +286,7 @@ int main(int argc, char* argv[])
 
         glm::vec2 b_pos;
 
+        // remove bullets outside of screen area
         auto it = std::remove_if(bullets.begin(), bullets.end(), [](Bullet* b){
             glm::vec2 b_pos;
             b_pos = b->get_position();

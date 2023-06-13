@@ -5,11 +5,13 @@
 #include <iostream>
 #include <chrono>
 #include <SDL.h>
+#include "../Bullet.h"
 
 void Server::Run()
 {
 
     std::vector<Player*> players;
+    std::vector<Bullet*> blt;
 
 	EnetServer* s = new EnetServer();
 	auto result = s->init("127.0.0.1", "1234", 2);
@@ -74,6 +76,9 @@ void Server::Run()
                 //printf("P1 x:%f y:%f\n", temp.players[1].x, temp.players[1].y);
 				s->broadcast(p2);
                 break;
+            }
+            default: {
+                s->broadcast(data);
             }
         }
 

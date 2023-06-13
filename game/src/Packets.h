@@ -4,6 +4,7 @@
 
 #include <vector>
 #include "Serialization.h"
+#include "GameObject.h"
 
 class Player;
 
@@ -20,7 +21,8 @@ enum PacketType {
     UPDATE_PLAYERS      =   3,
     NEW_PLAYER          =   4,
     PLAYER_INFO         =   5,
-    PLAYERS_POSITIONS   =   6
+    PLAYERS_POSITIONS = 6,
+    BULLETS_POSITION_UPDATE
 };
 
 namespace spt
@@ -48,11 +50,12 @@ namespace spt
 struct Packet {
     int type;
     std::vector<char> data;
-
+    uint32_t tick;
     template<typename Stream> bool Serialize(Stream & stream)
     {
         serialize_int32(stream, type);
         serialize_char_vector(stream, data, data.size());
+        serialize_uint32(stream, tick);
         return true;
     }
 };
@@ -69,6 +72,12 @@ struct player_position_packet {
         serialize_float32(stream, y);
         return true;
     }
+};
+
+
+struct bullets_position_packet {
+    std::vector<int> bullet_idx;
+    std::vector<Transform> bullet_positions;
 };
 
 void handle_player_position_packet(player_position_packet& packet, Player& player);

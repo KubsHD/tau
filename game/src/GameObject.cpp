@@ -3,8 +3,8 @@
 
 GameObject::GameObject(Texture *texture, int x, int y) : texture(texture)
 {
-    this->x = x;
-    this->y = y;
+    this->transform.x = x;
+    this->transform.y = y;
     if(texture == NULL)
         return;
     rect.h = texture->height;
@@ -13,8 +13,8 @@ GameObject::GameObject(Texture *texture, int x, int y) : texture(texture)
 
 void GameObject::Render(SDL_Renderer* renderer)
 {
-    rect.x = (int)x;
-    rect.y = (int)y;
+    rect.x = (int)transform.x;
+    rect.y = (int)transform.y;
     SDL_RenderCopy(renderer, texture->texture, NULL, &rect);
 }
 
@@ -24,19 +24,19 @@ SDL_Rect GameObject::GetRect()
 }
 float GameObject::GetX() const
 {
-    return x;
+    return transform.x;
 }
 float GameObject::GetY() const
 {
-    return y;
+    return transform.y;
 }
 void GameObject::SetX(float value)
 {
-    x = value;
+    transform.x = value;
 }
 void GameObject::SetY(float value)
 {
-    y = value;
+    transform.y = value;
 }
 int GameObject::GetHeight() const
 {
@@ -45,4 +45,14 @@ int GameObject::GetHeight() const
 int GameObject::GetWidth() const
 {
     return rect.w;
+}
+
+void GameObject::set_transform(Transform& transform)
+{
+    this->transform = transform;
+}
+
+Transform& GameObject::get_transform()
+{
+    return transform;
 }
