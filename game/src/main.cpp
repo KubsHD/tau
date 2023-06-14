@@ -41,6 +41,7 @@ SDL_Texture* loadTexture(std::string, SDL_Renderer*);
 
 struct World {
     std::vector<Bullet*> Bullets;
+	std::vector<Player*> players;
 } world;
 
 struct NetworkIdentity {
@@ -98,14 +99,8 @@ const char* get_real_path(std::string vpath)
     return get_real_path(vpath.c_str());
 }
 
-void net_update(std::vector<Player*> players, int own_id, EnetClient* c)
+void net_update(int own_id, EnetClient* c)
 {
-    auto packet = create_player_position_packet(*identity.owned_player);
-    Packet p = WRAP_PACKET(PacketType::PLAYER_POSITION, packet);
-
-    //c->send(p);
-
-
     Packet rec;
 
     rec = c->receive();
@@ -118,10 +113,15 @@ void net_update(std::vector<Player*> players, int own_id, EnetClient* c)
 			auto temp =
 				spt::deserialize<player_position_packet>(rec.data);
 
-			for (int i = 0; i < players.size(); i++)
+
+            // Received own position - discard TODO: CSP
+            if (identity.owned_player->id == temp.id)
+                break;
+
+			for (int i = 0; i < world.players.size(); i++)
 			{
-				if (players[i]->id == temp.id)
-					handle_player_position_packet(temp, *players[i]);
+				if (world.players[i]->id == temp.id)
+					handle_player_position_packet(temp, *world.players[i]);
 			}
 
             break;
@@ -154,7 +154,10 @@ void net_update(std::vector<Player*> players, int own_id, EnetClient* c)
 			auto np =
 				spt::deserialize<new_player_packet>(rec.data);
 
-			players.push_back(new Player(new Texture(get_real_path(std::string(np.avatar_texture_name.data()) + ".png"), renderer), 15, 20, np.pid));
+            world.players.push_back(new Player(
+                new Texture(get_real_path(std::string(np.avatar_texture_name.begin(), np.avatar_texture_name.end()) + ".png"),
+                    renderer),
+                15, 20, np.pid));
             break;
         }
         case PacketType::CLIENT_RECV_ID:
@@ -171,7 +174,7 @@ void net_update(std::vector<Player*> players, int own_id, EnetClient* c)
 
 }
 
-void net_connect(EnetClient* c, std::vector<Player*>& players, Texture* burgir, Texture* steak)
+void net_connect(EnetClient* c, Texture* burgir, Texture* steak)
 {
     if (!c->connect("127.0.0.1", "1234"))
         __debugbreak();
@@ -180,7 +183,7 @@ void net_connect(EnetClient* c, std::vector<Player*>& players, Texture* burgir, 
     c->send(welcome_packet);
 
     identity.owned_player = new Player(new Texture(get_real_path(std::string("burgir") + ".png"), renderer), 15, 20, -1);
-	players.push_back(identity.owned_player);
+	world.players.push_back(identity.owned_player);
 }
 
 int main(int argc, char* argv[])
@@ -191,7 +194,6 @@ int main(int argc, char* argv[])
 
     std::string nickname;
     //std::cin >> nickname;
-	std::vector<Player*> players;
 
     int own_id = -1;
 
@@ -273,21 +275,30 @@ int main(int argc, char* argv[])
 
         if (c->is_connected)
         {
-            net_update(players, own_id, c);
+            net_update(own_id, c);
 
 			const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
-			identity.owned_player->Move(currentKeyStates);
+
+			if (identity.owned_player->id != -1)
+			{
+
+				identity.owned_player->Move(currentKeyStates);
+
+				auto packet = create_player_position_packet(*identity.owned_player);
+				Packet p = WRAP_PACKET(PacketType::PLAYER_POSITION, packet);
+				c->send(p);
+			}
 
 			//if (Input::mouse_down(0))
 			//	bullets.push_back(new Bullet(Input::get_mouse_pos().x, Input::get_mouse_pos().y, cookie, players[own_id]));
         }
         else if (Input::key_down(SDL_SCANCODE_U))
-			net_connect(c, players, burgir, steak);
+			net_connect(c, burgir, steak);
 
         //Clear screen
         SDL_RenderClear(renderer);
 
-        for (auto p_ : players)
+        for (auto p_ : world.players)
         {
             p_->Render(renderer);
         }
