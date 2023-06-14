@@ -11,10 +11,16 @@ private:
     float vx;
     float vy;
     const int speed = 8;
+
+
+
 public:
-    Bullet(int mx, int my, Texture* texture, Player* player);
+    Bullet(int mx, int my, Texture* texture, Player* player, int player_id, int id);
     void Move();
     glm::vec2 get_position();
+
+    int player_id;
+    int id;
 };
 
 

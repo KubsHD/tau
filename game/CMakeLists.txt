@@ -55,8 +55,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 else()
     add_executable(splatter WIN32
         ${game_SRC}
-        ${APP_ICON_RESOURCE_WINDOWS}
-            src/Texture.cpp src/Texture.h src/GameObject.cpp src/GameObject.h src/Player.cpp src/Player.h src/Bullet.cpp src/Bullet.h src/NetworkLayer.h src/Serialization.h src/Packets.cpp)
+        ${APP_ICON_RESOURCE_WINDOWS})
 endif()
 
 target_link_libraries(splatter PRIVATE ${game_libs})

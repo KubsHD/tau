@@ -16,7 +16,7 @@
 #include "Texture.h"
 #include "Player.h"
 #include "Bullet.h"
-#include "NetworkLayer.h"
+#include "net/NetworkLayer.h"
 #include <glm/glm.hpp>
 #include <memory>
 #include <algorithm>
@@ -24,7 +24,7 @@
 #include <thread>
 #include <iostream>
 #include <server/Server.h>
-#include <Packets.h>
+#include <net/Packets.h>
 #include <sstream>
 
 #include <core/Window.h>
@@ -40,7 +40,8 @@
 SDL_Texture* loadTexture(std::string, SDL_Renderer*);
 
 struct World {
-    std::vector<Bullet*> Bullets;
+    int local_bullet_idx = 0;
+    std::vector<Bullet*> bullets;
 	std::vector<Player*> players;
 } world;
 
@@ -144,7 +145,7 @@ void net_update(int own_id, EnetClient* c)
 		    printf("I have Id: %d\n", own_id);
             break;
         }
-        case PacketType::BULLETS_POSITION_UPDATE:
+        case PacketType::BULLET_POSITION_UPDATE:
         {
 
             break;
@@ -239,8 +240,6 @@ int main(int argc, char* argv[])
     Texture* steak = new Texture(get_real_path("steak.png"), renderer);
     Texture* cookie = new Texture(get_real_path("cookie.png"), renderer);
 
-    std::vector<Bullet*> bullets;
-
 	EnetClient* c = new EnetClient();
 
 
@@ -289,8 +288,16 @@ int main(int argc, char* argv[])
 				c->send(p);
 			}
 
-			//if (Input::mouse_down(0))
-			//	bullets.push_back(new Bullet(Input::get_mouse_pos().x, Input::get_mouse_pos().y, cookie, players[own_id]));
+            if (Input::mouse_down(0))
+            {
+                world.bullets.push_back(new Bullet(Input::get_mouse_pos().x, Input::get_mouse_pos().y, cookie, identity.owned_player,
+                    identity.player_id, world.local_bullet_idx++));
+                
+                // notify other players about new bullet spawn
+
+
+
+            }
         }
         else if (Input::key_down(SDL_SCANCODE_U))
 			net_connect(c, burgir, steak);
@@ -306,7 +313,7 @@ int main(int argc, char* argv[])
         glm::vec2 b_pos;
 
         // remove bullets outside of screen area
-        auto it = std::remove_if(bullets.begin(), bullets.end(), [](Bullet* b){
+        auto it = std::remove_if(world.bullets.begin(), world.bullets.end(), [](Bullet* b){
             glm::vec2 b_pos;
             b_pos = b->get_position();
             if(b_pos.x < 0 - b->GetWidth() || b_pos.x > SCREEN_WIDTH
@@ -317,9 +324,9 @@ int main(int argc, char* argv[])
             return false;
         });
 
-        bullets.erase(it, bullets.end());
+        world.bullets.erase(it, world.bullets.end());
 
-        for(auto b : bullets)
+        for(auto b : world.bullets)
         {
             b->Move();
             b->Render(renderer);

@@ -10,7 +10,7 @@
 #include <iostream>
 #include "Player.h"
 #include <sstream>
-#include <Serialization.h>
+#include <utils/Serialization.h>
 #include "Packets.h"
 
 
@@ -39,6 +39,8 @@ public:
     //virtual bool broadcast(char* buf, int size) = 0;
 
 	virtual bool broadcast(Packet p) = 0;
+
+	virtual bool broadcast_except_sender(Packet p) = 0;
 
     /// Sends data to specified client
     ///<[in] buffer with binary data
@@ -182,6 +184,30 @@ public:
 //        }
 //        return NULL;
 //    }
+
+    bool broadcast_except_sender(Packet p) override
+    {
+		std::cout << "[SERVER] " << "Sending packet with type: " << p.type << std::endl;
+
+		std::vector<ENetPacket*> packets;
+		for (ENetPeer* client : clients)
+		{
+            if (client == sender)
+                continue;
+
+			auto raw_data = spt::serialize(p);
+
+			packets.push_back(enet_packet_create(raw_data.data(), raw_data.size(), ENET_PACKET_FLAG_RELIABLE));
+			enet_peer_send(client, 0, packets.back());
+		}
+		enet_host_flush(server);
+		//		for(ENetPacket* packet_ : packets)
+		//		{
+		//		    enet_packet_destroy(packet_);
+		//		}
+		return true;
+    }
+
 };
 
 class EnetClient : public SocketClient {

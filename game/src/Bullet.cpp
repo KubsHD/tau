@@ -2,8 +2,8 @@
 #include "Player.h"
 #include <glm/glm.hpp>
 
-Bullet::Bullet(int mx, int my, Texture* texture, Player* player)
-: GameObject(texture, player->GetX(), player->GetY())
+Bullet::Bullet(int mx, int my, Texture* texture, Player* player, int player_id, int id)
+: GameObject(texture, player->GetX(), player->GetY()), player_id(player_id), id(id)
 {
     float vx_ = (float)mx - transform.x - (float)player->GetWidth() / 2;
     float vy_ = (float)my - transform.y - (float)player->GetHeight() / 2;

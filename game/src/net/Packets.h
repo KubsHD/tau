@@ -4,7 +4,7 @@
 
 #include <vector>
 #include <iterator>
-#include "Serialization.h"
+#include <utils/Serialization.h>
 #include "GameObject.h"
 #include <string>
 
@@ -30,7 +30,7 @@ enum PacketType {
     NEW_PLAYER          =   4,
     PLAYER_INFO         =   5,
     PLAYERS_POSITIONS   = 6,
-    BULLETS_POSITION_UPDATE = 7,
+    BULLET_POSITION_UPDATE = 7,
     PLAYER_SPAWN = 8,
     CLIENT_RECV_ID = 9,
 };
@@ -130,6 +130,16 @@ struct player_positions_packet {
 	template<typename Stream> bool Serialize(Stream& stream)
 	{
 		serialize_vector2(stream, players);
+		return true;
+	}
+};
+
+struct bullet_postiion_packet {
+	std::vector<uint32_t> bullet_position;
+
+	template<typename Stream> bool Serialize(Stream& stream)
+	{
+		serialize_vector2(stream, bullet_position);
 		return true;
 	}
 };

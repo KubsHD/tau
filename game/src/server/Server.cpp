@@ -1,7 +1,7 @@
 #include "Server.h"
 
-#include <NetworkLayer.h>
-#include "Packets.h"
+#include <net/NetworkLayer.h>
+#include <net/Packets.h>
 #include <iostream>
 #include <chrono>
 #include <SDL.h>
@@ -120,7 +120,7 @@ void Server::Run()
 		//	break;
 		//}
 		default: {
-			s->broadcast(data);
+			s->broadcast_except_sender(data);
 		}
 		}
 
