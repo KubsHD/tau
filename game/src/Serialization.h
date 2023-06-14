@@ -299,7 +299,11 @@ public:
 	bool SerializeCharVector(std::vector<char>& vec, uint32_t size) override
 	{
 		if (size % 4 != 0)
-			return false;
+        {
+            size = size + (4 - size % 4);
+            vec.resize(size);
+        }
+			//return false;
 		auto new_data_offset = buffer.size();
 		buffer.resize(buffer.size() + size / 4);
 		std::memcpy((buffer.data() + new_data_offset), vec.data(), size);
@@ -364,7 +368,19 @@ public:
 	bool SerializeCharVector(std::vector<char>& vec, uint32_t size) override
 	{
 		if (size % 4 != 0)
-			return false;
+        {
+            uint32_t empty_data = 4 - size % 4;
+            //size = size + empty_data;
+            check_for_enough_data(buffer.size() - head, (size + empty_data) / 4);
+            if (vec.capacity() < size)
+            {
+                vec.resize(size);
+            }
+            std::memcpy(vec.data(), buffer.data() + head, size);
+            head += (size + empty_data) / 4;
+            return true;
+        }
+			//return false;
 		check_for_enough_data(buffer.size() - head, size / 4);
 		if (vec.capacity() < size)
 		{
