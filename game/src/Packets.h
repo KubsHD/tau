@@ -3,8 +3,10 @@
 #define SPLATTER_PACKETS_H
 
 #include <vector>
+#include <iterator>
 #include "Serialization.h"
 #include "GameObject.h"
+#include <string>
 
 class Player;
 
@@ -14,6 +16,12 @@ class Player;
     spt::serialize(packet)                  \
     }
 
+#define SEND_PACKET(client, packet_type, packet)    \
+    client->send({                                       \
+    packet_type,                            \
+    spt::serialize(packet)                  \
+    });                                     \
+
 enum PacketType {
     PACKET_EMPTY        =   0,
 	PLAYER_POSITION     =   1,
@@ -21,8 +29,10 @@ enum PacketType {
     UPDATE_PLAYERS      =   3,
     NEW_PLAYER          =   4,
     PLAYER_INFO         =   5,
-    PLAYERS_POSITIONS = 6,
-    BULLETS_POSITION_UPDATE
+    PLAYERS_POSITIONS   = 6,
+    BULLETS_POSITION_UPDATE = 7,
+    PLAYER_SPAWN = 8,
+    CLIENT_RECV_ID = 9,
 };
 
 namespace spt
@@ -114,14 +124,59 @@ struct players_positions_packet {
     }
 };
 
-struct new_player_packet {
-    int dummy_int;
+struct player_positions_packet {
+	std::vector<player_position_packet> players;
 
-    template<typename Stream> bool Serialize(Stream & stream)
+	template<typename Stream> bool Serialize(Stream& stream)
+	{
+		serialize_vector2(stream, players);
+		return true;
+	}
+};
+
+struct new_player_packet {
+
+    new_player_packet()
     {
-        serialize_int32(stream, dummy_int);
+
+    }
+
+    new_player_packet(std::string avatar_texture_name_str)
+    {
+        pid = -1;
+        std::copy(avatar_texture_name_str.begin(), avatar_texture_name_str.end(), std::back_inserter(avatar_texture_name));
+    }
+
+    int pid;
+	std::vector<char> avatar_texture_name;
+
+    template<typename Stream> bool Serialize(Stream& stream)
+    {
+        serialize_int32(stream, pid);
+        serialize_char_vector(stream, avatar_texture_name);
         return true;
     }
+};
+
+struct client_recv_id_packet {
+
+    client_recv_id_packet()
+    {
+
+    }
+
+	client_recv_id_packet(int id) : pid(id)
+	{
+
+	}
+
+	int pid;
+
+	template<typename Stream> bool Serialize(Stream& stream)
+	{
+		serialize_int32(stream, pid);
+		return true;
+	}
 };
 
 #endif //SPLATTER_PACKETS_H

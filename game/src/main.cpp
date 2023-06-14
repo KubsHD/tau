@@ -43,6 +43,16 @@ struct World {
     std::vector<Bullet*> Bullets;
 } world;
 
+struct NetworkIdentity {
+    int player_id;
+    std::string nick;
+    Player* owned_player;
+} identity;
+
+SDL_Renderer* renderer = NULL;
+
+
+
 const char* get_real_path(const char* vpath)
 {
 #if DEBUG
@@ -83,17 +93,18 @@ const char* get_real_path(const char* vpath)
     return tmp;
 }
 
+const char* get_real_path(std::string vpath)
+{
+    return get_real_path(vpath.c_str());
+}
 
 void net_update(std::vector<Player*> players, int own_id, EnetClient* c)
 {
-    auto packet = create_player_position_packet(*players[own_id]);
+    auto packet = create_player_position_packet(*identity.owned_player);
     Packet p = WRAP_PACKET(PacketType::PLAYER_POSITION, packet);
 
-    c->send(p);
+    //c->send(p);
 
-    const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
-
-    players[own_id]->Move(currentKeyStates);
 
     Packet rec;
 
@@ -104,18 +115,33 @@ void net_update(std::vector<Player*> players, int own_id, EnetClient* c)
         switch (rec.type) {
         case PacketType::PLAYER_POSITION:
         {
+			auto temp =
+				spt::deserialize<player_position_packet>(rec.data);
+
+			for (int i = 0; i < players.size(); i++)
+			{
+				if (players[i]->id == temp.id)
+					handle_player_position_packet(temp, *players[i]);
+			}
+
             break;
         }
         case PacketType::PLAYERS_POSITIONS:
         {
-            auto temp =
-                spt::deserialize<players_positions_packet>(rec.data).players;
+            //auto temp =
+            //    spt::deserialize<players_positions_packet>(rec.data).players;
 
-            for (int i = 0; i < temp.size(); i++)
-            {
-                if (temp[i].id != own_id)
-                    handle_player_position_packet(temp[i], *players[i]);
-            }
+            //for (int i = 0; i < temp.size(); i++)
+            //{
+            //    if (temp[i].id != own_id)
+            //        handle_player_position_packet(temp[i], *players[i]);
+            //}
+            break;
+        }
+        case PacketType::PLAYER_INFO:
+        {
+		    int own_id = spt::deserialize<player_base_info_packet>(rec.data).id;
+		    printf("I have Id: %d\n", own_id);
             break;
         }
         case PacketType::BULLETS_POSITION_UPDATE:
@@ -123,73 +149,45 @@ void net_update(std::vector<Player*> players, int own_id, EnetClient* c)
 
             break;
         }
+        case PacketType::PLAYER_SPAWN:
+        {
+			auto np =
+				spt::deserialize<new_player_packet>(rec.data);
+
+			players.push_back(new Player(new Texture(get_real_path(std::string(np.avatar_texture_name.data()) + ".png"), renderer), 15, 20, np.pid));
+            break;
+        }
+        case PacketType::CLIENT_RECV_ID:
+		{
+            client_recv_id_packet pckt = spt::deserialize<client_recv_id_packet>(rec.data);
+            identity.player_id = pckt.pid;
+            identity.owned_player->id = pckt.pid;
+        }
 
         }
+
         rec = c->receive();
     }
 
 }
 
-int net_connect(EnetClient* c, std::vector<Player*>& players, Texture* burgir, Texture* steak)
+void net_connect(EnetClient* c, std::vector<Player*>& players, Texture* burgir, Texture* steak)
 {
-    c->connect("127.0.0.1", "1234");
-    new_player_packet pp{};
-    Packet wp = WRAP_PACKET(PacketType::NEW_PLAYER, pp);
-    //Packet wp = WRAP_PACKET(PacketType::NEW_PLAYER, pp);
-    c->send(wp);
+    if (!c->connect("127.0.0.1", "1234"))
+        __debugbreak();
 
-    //xddd
-    std::vector<char> vc;
-    Packet test = {};// WRAP_PACKET(2137, pp);
-    test.type = 6;
-    player_base_info_packet xd;
-    xd.id = 0;
+    Packet welcome_packet = WRAP_PACKET(PacketType::NEW_PLAYER, new_player_packet("burgir"));
+    c->send(welcome_packet);
 
-    player_base_info_packet xd2;
-    //while (1)
-    //{
-    //    vc = spt::serialize(xd);
-    //    xd2 = spt::deserialize<player_base_info_packet>(vc);
-    //}
-
-
-        //here the player waits for the server to assign it unique id
-    int t = PacketType::PACKET_EMPTY;
-    while (t != PacketType::PLAYER_INFO)
-    {
-        wp = c->receive();
-        t = wp.type;
-    }
-    
-    int own_id = spt::deserialize<player_base_info_packet>(wp.data).id;
-
-    printf("I have Id: %d\n", own_id);
-
-
-
-    while (t != PacketType::PLAYERS_POSITIONS)
-    {
-        wp = c->receive();
-        t = wp.type;
-    }
-
-    auto players_positions_pckt =
-        spt::deserialize<players_positions_packet>(wp.data);
-
-    auto players_positions = players_positions_pckt.players;
-
-    players.push_back(new Player(burgir, 15, 20, players_positions[0].id));
-    players.push_back(new Player(steak, 30, 80, players_positions[1].id));
-
-    return own_id;
-
+    identity.owned_player = new Player(new Texture(get_real_path(std::string("burgir") + ".png"), renderer), 15, 20, -1);
+	players.push_back(identity.owned_player);
 }
 
 int main(int argc, char* argv[])
 {
-    SteamDatagramErrMsg msg;
-	if (!GameNetworkingSockets_Init(nullptr, msg))
-		printf("GameNetworkingSockets_Init failed.  %s", msg);
+ //   SteamDatagramErrMsg msg;
+	//if (!GameNetworkingSockets_Init(nullptr, msg))
+	//	printf("GameNetworkingSockets_Init failed.  %s", msg);
 
     std::string nickname;
     //std::cin >> nickname;
@@ -221,7 +219,6 @@ int main(int argc, char* argv[])
 
     spt::scope<Input> input;
     spt::scope<Window> window;
-    SDL_Renderer* renderer = NULL;
     SDL_Texture* t1 = NULL;
 
     ASSERT_SDL(SDL_Init(SDL_INIT_EVERYTHING) >= 0)
@@ -278,11 +275,14 @@ int main(int argc, char* argv[])
         {
             net_update(players, own_id, c);
 
-			if (Input::mouse_down(0))
-				bullets.push_back(new Bullet(Input::get_mouse_pos().x, Input::get_mouse_pos().y, cookie, players[own_id]));
+			const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
+			identity.owned_player->Move(currentKeyStates);
+
+			//if (Input::mouse_down(0))
+			//	bullets.push_back(new Bullet(Input::get_mouse_pos().x, Input::get_mouse_pos().y, cookie, players[own_id]));
         }
         else if (Input::key_down(SDL_SCANCODE_U))
-			own_id = net_connect(c, players, burgir, steak);
+			net_connect(c, players, burgir, steak);
 
         //Clear screen
         SDL_RenderClear(renderer);

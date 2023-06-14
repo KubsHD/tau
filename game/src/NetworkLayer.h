@@ -25,7 +25,7 @@ public:
     /// receive data
     virtual Packet receive() = 0;
 
-	bool is_connected = false;
+	bool is_connected;
 };
 
 class SocketServer {
@@ -57,6 +57,7 @@ private:
     ENetAddress address;
     ENetEvent event;
 public:
+    ENetPeer* sender;
     std::vector <ENetPeer*> clients;
     bool init(const char* address_string, const char* port_string, int max_clients) override
     {
@@ -136,6 +137,7 @@ public:
             {
                 case ENET_EVENT_TYPE_RECEIVE:
                 {
+                    sender = event.peer;
                     std::vector<char> temp(event.packet->dataLength);
                     std::memcpy(temp.data(), event.packet->data, event.packet->dataLength);
                     auto p = spt::deserialize<Packet>(temp);
@@ -215,7 +217,8 @@ public:
         if (enet_host_service (client, & event, 5000) > 0 &&
             event.type == ENET_EVENT_TYPE_CONNECT)
         {
-            return true;
+            is_connected = true;
+			return true;
         }
         else
         {

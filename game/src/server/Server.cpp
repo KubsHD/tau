@@ -14,14 +14,13 @@ void Server::Run()
     std::vector<Bullet*> blt;
 
 	EnetServer* s = new EnetServer();
-	auto result = s->init("127.0.0.1", "1234", 2);
+	auto result = s->init("127.0.0.1", "1234", 8);
 
 	if (!result)
 	{
 		std::cout << "Server could not start (it's probably running already)" << std::endl;
 		return;
 	}
-
 
 
 	Packet data;
@@ -37,9 +36,23 @@ void Server::Run()
         switch (data.type) {
             case PacketType::NEW_PLAYER:
             {
+                auto new_player = spt::deserialize<new_player_packet>(data.data);
+
+				players.push_back(new Player(NULL, 0, 0));
+                s->send(WRAP_PACKET(PacketType::CLIENT_RECV_ID, client_recv_id_packet(players.size() - 1)), s->sender);
+
+                for (auto peer : s->clients)
+                {
+                    if (peer != s->sender)
+                    {
+                        s->send(WRAP_PACKET(PacketType::PLAYER_SPAWN, new_player), peer);
+                    }
+                }
+
+                break;
+
                 //This works under the assumption that after a client connects,
                 //server receives PLAYER_INFO packet before another client connects
-                players.push_back(new Player(NULL, 0, 0));
                 players.back()->id = players.size() - 1;
                 player_base_info_packet bp = {players.back()->id};
                 Packet p = WRAP_PACKET(PacketType::PLAYER_INFO, bp);

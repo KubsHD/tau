@@ -91,7 +91,7 @@ inline int max_i(int a, int b) { return a > b ? a : b; }
       }                                                             \
 } while (0)
 
-#define serialize_char_vector( stream, vector, bytes )              \
+#define serialize_char_vector( stream, vector )				        \
   do                                                                \
     {                                                               \
         uint32_t size;                                              \
