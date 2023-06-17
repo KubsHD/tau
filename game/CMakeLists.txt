@@ -63,6 +63,7 @@ target_compile_definitions(splatter PRIVATE _CRT_SECURE_NO_WARNINGS=1)
 target_include_directories(splatter PUBLIC "${PROJECT_SOURCE_DIR}/src")
 target_include_directories(splatter PUBLIC "${PROJECT_SOURCE_DIR}/src/lib")
 target_include_directories(splatter PUBLIC "${PROJECT_SOURCE_DIR}/../deps/GameNetworkingSockets/GameNetworkingSockets/include")
+target_precompile_headers(splatter PRIVATE "<string>")
 
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

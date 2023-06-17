@@ -36,8 +36,7 @@
 #include <lib/cereal/archives/portable_binary.hpp>
 #include <core/Macros.h>
 #include <core/Input.h>
-
-SDL_Texture* loadTexture(std::string, SDL_Renderer*);
+#include <core/Asset.h>
 
 struct World {
     int local_bullet_idx = 0;
@@ -55,50 +54,6 @@ SDL_Renderer* renderer = NULL;
 
 
 
-const char* get_real_path(const char* vpath)
-{
-#if DEBUG
-#if APPLE
-    const char* path_prefix = "./../../game/data/";
-#else
-    const char* path_prefix = "../../../../game/data/";
-#endif
-
-#else
-#if VITA
-    path_prefix = "app0:data/";
-#elif XBOX
-    char* base = SDL_WinRTGetFSPathUTF8(SDL_WINRT_PATH_INSTALLED_LOCATION);
-    int size = snprintf(NULL, 0, "%s/data/", base);
-    char* buf = malloc(size + 1);
-    sprintf(buf, "%s/data/", base);
-    path_prefix = buf;
-#elif APPLE
-
-    char* base = SDL_GetBasePath();
-    int size = snprintf(NULL, 0, "%sdata/", base);
-    char* buf = (char*)malloc(size + 1);
-    sprintf(buf, "%sdata/", base);
-    path_prefix = buf;
-#else
-    path_prefix = "data/";
-#endif
-    printf("asset: path: %s\n", path_prefix);
-#endif
-
-    size_t needed = snprintf(NULL, 0, "%s%s", path_prefix, vpath) + 1;
-
-    char* tmp = (char*)calloc(needed, 1);
-
-    snprintf(tmp, needed, "%s%s", path_prefix, vpath);
-
-    return tmp;
-}
-
-const char* get_real_path(std::string vpath)
-{
-    return get_real_path(vpath.c_str());
-}
 
 void net_update(int own_id, EnetClient* c)
 {
@@ -156,7 +111,7 @@ void net_update(int own_id, EnetClient* c)
 				spt::deserialize<new_player_packet>(rec.data);
 
             world.players.push_back(new Player(
-                new Texture(get_real_path(std::string(np.avatar_texture_name.begin(), np.avatar_texture_name.end()) + ".png"),
+                new Texture(Asset::get_real_path(std::string(np.avatar_texture_name.begin(), np.avatar_texture_name.end()) + ".png"),
                     renderer),
                 15, 20, np.pid));
             break;
@@ -175,7 +130,7 @@ void net_update(int own_id, EnetClient* c)
 
 }
 
-void net_connect(EnetClient* c, Texture* burgir, Texture* steak)
+void net_connect(EnetClient* c)
 {
     if (!c->connect("127.0.0.1", "1234"))
         __debugbreak();
@@ -183,7 +138,7 @@ void net_connect(EnetClient* c, Texture* burgir, Texture* steak)
     Packet welcome_packet = WRAP_PACKET(PacketType::NEW_PLAYER, new_player_packet("burgir"));
     c->send(welcome_packet);
 
-    identity.owned_player = new Player(new Texture(get_real_path(std::string("burgir") + ".png"), renderer), 15, 20, -1);
+    identity.owned_player = new Player(new Texture(Asset::get_real_path(std::string("burgir") + ".png"), renderer), 15, 20, -1);
 	world.players.push_back(identity.owned_player);
 }
 
@@ -236,9 +191,7 @@ int main(int argc, char* argv[])
 
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
-    Texture* burgir = new Texture(get_real_path("burgir.png"), renderer);
-    Texture* steak = new Texture(get_real_path("steak.png"), renderer);
-    Texture* cookie = new Texture(get_real_path("cookie.png"), renderer);
+    Texture* cookie = new Texture(Asset::get_real_path("cookie.png"), renderer);
 
 	EnetClient* c = new EnetClient();
 
@@ -300,7 +253,7 @@ int main(int argc, char* argv[])
             }
         }
         else if (Input::key_down(SDL_SCANCODE_U))
-			net_connect(c, burgir, steak);
+			net_connect(c);
 
         //Clear screen
         SDL_RenderClear(renderer);
