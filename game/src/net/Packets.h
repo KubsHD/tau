@@ -5,7 +5,7 @@
 #include <vector>
 #include <iterator>
 #include <utils/Serialization.h>
-#include "GameObject.h"
+#include <game/GameObject.h>
 #include <string>
 
 class Player;

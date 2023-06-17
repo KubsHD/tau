@@ -3,7 +3,7 @@
 #ifndef SPLATTER_GAMEOBJECT_H
 #define SPLATTER_GAMEOBJECT_H
 
-#include "Texture.h"
+#include <gfx/Texture.h>
 #include "SDL_rect.h"
 #include <glm/fwd.hpp>
 

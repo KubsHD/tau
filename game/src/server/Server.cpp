@@ -5,7 +5,7 @@
 #include <iostream>
 #include <chrono>
 #include <SDL.h>
-#include "../Bullet.h"
+#include <game/Bullet.h>
 
 struct PlayerData {
 	int id;

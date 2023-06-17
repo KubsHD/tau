@@ -8,7 +8,7 @@
 #include <vector>
 #include "enet/enet.h"
 #include <iostream>
-#include "Player.h"
+#include <game/Player.h>
 #include <sstream>
 #include <utils/Serialization.h>
 #include "Packets.h"

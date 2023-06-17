@@ -13,9 +13,9 @@
 #include <stdio.h>
 #include <string>
 #include "lib/stb_image.h"
-#include "Texture.h"
-#include "Player.h"
-#include "Bullet.h"
+#include <gfx/Texture.h>
+#include <game/Player.h>
+#include <game/Bullet.h>
 #include "net/NetworkLayer.h"
 #include <glm/glm.hpp>
 #include <memory>

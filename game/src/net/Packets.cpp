@@ -2,7 +2,7 @@
 // Created by I3artek on 29/05/2023.
 //
 #include "Packets.h"
-#include "Player.h"
+#include <game/Player.h>
 
 void handle_player_position_packet(player_position_packet& packet, Player& player)
 {
