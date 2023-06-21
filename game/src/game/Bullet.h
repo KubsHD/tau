@@ -15,7 +15,7 @@ private:
 
 
 public:
-    Bullet(int mx, int my, Texture* texture, Player* player, int player_id, int id);
+    Bullet(int mx, int my, STexture* texture, Player* player, int player_id, int id);
     void Move();
     glm::vec2 get_position();
 

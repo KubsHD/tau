@@ -21,8 +21,8 @@ protected:
     SDL_Rect rect;
     Transform transform;
 public:
-    Texture* texture;
-    GameObject(Texture* texture, int x, int y);
+    STexture* texture;
+    GameObject(STexture* texture, int x, int y);
     void Render(SDL_Renderer* renderer);
     SDL_Rect GetRect();
     float GetX() const;

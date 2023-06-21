@@ -8,12 +8,12 @@ struct SDL_Texture;
 struct SDL_Renderer;
 
 
-class Texture {
+class STexture {
 public:
     SDL_Texture* texture;
     int height;
     int width;
-    Texture(const char* path, SDL_Renderer* renderer);
+    STexture(const char* path, SDL_Renderer* renderer);
 };
 
 

@@ -6,7 +6,7 @@
 #include "lib/stb_image.h"
 #include <SDL.h>
 
-Texture::Texture(const char* path, SDL_Renderer *renderer)
+STexture::STexture(const char* path, SDL_Renderer *renderer)
 {
     int channels;
 

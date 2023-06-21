@@ -1,7 +1,7 @@
 #include "GameObject.h"
 #include <SDL.h>
 
-GameObject::GameObject(Texture *texture, int x, int y) : texture(texture)
+GameObject::GameObject(STexture *texture, int x, int y) : texture(texture)
 {
     this->transform.x = x;
     this->transform.y = y;

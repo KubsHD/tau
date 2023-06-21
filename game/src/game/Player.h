@@ -9,8 +9,8 @@ private:
     int speed = 3;
 public:
     int id;
-    Player(Texture* texture, int x, int y);
-    Player(Texture* texture, int x, int y, int id);
+    Player(STexture* texture, int x, int y);
+    Player(STexture* texture, int x, int y, int id);
     void Move(const Uint8* keyStates);
 };
 

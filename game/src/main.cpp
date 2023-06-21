@@ -29,11 +29,8 @@
 
 #include <core/Window.h>
 
+#include <gfx/Renderer.h>
 
-#include <lib/cereal/types/unordered_map.hpp>
-#include <lib/cereal/types/memory.hpp>
-#include <lib/cereal/archives/binary.hpp>
-#include <lib/cereal/archives/portable_binary.hpp>
 #include <core/Macros.h>
 #include <core/Input.h>
 #include <core/Asset.h>
@@ -52,7 +49,16 @@ struct NetworkIdentity {
 
 SDL_Renderer* renderer = NULL;
 
+static float vertices[] = {
+	// pos      // tex
+	0.0f, 1.0f, 0.0f, 1.0f,
+	1.0f, 0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, 0.0f, 0.0f,
 
+	0.0f, 1.0f, 0.0f, 1.0f,
+	1.0f, 1.0f, 1.0f, 1.0f,
+	1.0f, 0.0f, 1.0f, 0.0f
+};
 
 
 void net_update(int own_id, EnetClient* c)
@@ -111,7 +117,7 @@ void net_update(int own_id, EnetClient* c)
 				spt::deserialize<new_player_packet>(rec.data);
 
             world.players.push_back(new Player(
-                new Texture(Asset::get_real_path(std::string(np.avatar_texture_name.begin(), np.avatar_texture_name.end()) + ".png"),
+                new STexture(Asset::get_real_path(std::string(np.avatar_texture_name.begin(), np.avatar_texture_name.end()) + ".png"),
                     renderer),
                 15, 20, np.pid));
             break;
@@ -139,7 +145,7 @@ void net_connect(EnetClient* c)
     Packet welcome_packet = WRAP_PACKET(PacketType::NEW_PLAYER, new_player_packet("burgir"));
     c->send(welcome_packet);
 
-    identity.owned_player = new Player(new Texture(Asset::get_real_path(std::string("burgir") + ".png"), renderer), 15, 20, -1);
+    identity.owned_player = new Player(new STexture(Asset::get_real_path(std::string("burgir") + ".png"), renderer), 15, 20, -1);
 	world.players.push_back(identity.owned_player);
 }
 
@@ -178,6 +184,8 @@ int main(int argc, char* argv[])
 
     spt::scope<Input> input;
     spt::scope<Window> window;
+    spt::scope<Renderer> ren;
+    
     SDL_Texture* t1 = NULL;
 
     ASSERT_SDL(SDL_Init(SDL_INIT_EVERYTHING) >= 0)
@@ -185,17 +193,51 @@ int main(int argc, char* argv[])
     //Create window
     window = spt::create_scope<Window>(SCREEN_WIDTH, SCREEN_HEIGHT, "Splatter");
     input = spt::create_scope<Input>();
+    ren = spt::create_scope<Renderer>(window->get_ptr());
 
     //Create renderer
-    renderer = SDL_CreateRenderer(window->get_ptr(), -1, SDL_RENDERER_ACCELERATED);
-    ASSERT_SDL(renderer != NULL)
+    //renderer = SDL_CreateRenderer(window->get_ptr(), -1, SDL_RENDERER_ACCELERATED);
+    //ASSERT_SDL(renderer != NULL)
 
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
-    Texture* cookie = new Texture(Asset::get_real_path("cookie.png"), renderer);
+    STexture* cookie = new STexture(Asset::get_real_path("cookie.png"), renderer);
 
 	EnetClient* c = new EnetClient();
 
+	static float vertices2[] = {
+		// pos      // tex
+		0.0f, 1.0f, 0.0f, 1.0f,
+		1.0f, 0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 0.0f,
+
+		0.0f, 1.0f, 0.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 0.0f, 1.0f, 0.0f
+	};
+    
+
+	int channels, width, height;
+
+	stbi_uc* data = stbi_load(Asset::get_real_path("cookie.png"), &width, &height, &channels, 0);
+
+    auto default_pipeline = ren->create_pipeline({
+        .vertexShader = "shaders/sprite.hlsl",
+        .pixelShader = "shaders/sprite.hlsl",
+    });
+
+    auto quadVertexBuffer = ren->create_buffer({
+        .bindFlags = D3D11_BIND_VERTEX_BUFFER,
+        .byteWidth = sizeof(float) * 24,
+        .data = vertices2
+    });
+
+    auto cookie2 = ren->create_texture({
+        .name = "cookie",
+        .size = {width, height},
+        .format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+        .data = std::vector<char>(data, data + (width * height * channels))
+     });
 
     bool quit = false;
     SDL_Event e;
@@ -256,13 +298,17 @@ int main(int argc, char* argv[])
         else if (Input::key_down(SDL_SCANCODE_U))
 			net_connect(c);
 
-        //Clear screen
-        SDL_RenderClear(renderer);
+        ren->clear();
 
-        for (auto p_ : world.players)
-        {
-            p_->Render(renderer);
-        }
+        ren->draw_texture(default_pipeline, quadVertexBuffer, cookie2, { 0, 0}, { 0, 0 });
+
+        ////Clear screen
+        //SDL_RenderClear(renderer);
+
+        //for (auto p_ : world.players)
+        //{
+        //    p_->Render(renderer);
+        //}
 
         glm::vec2 b_pos;
 
@@ -280,14 +326,16 @@ int main(int argc, char* argv[])
 
         world.bullets.erase(it, world.bullets.end());
 
-        for(auto b : world.bullets)
-        {
-            b->Move();
-            b->Render(renderer);
-        }
+        //for(auto b : world.bullets)
+        //{
+        //    b->Move();
+        //    b->Render(renderer);
+        //}
 
-        //Update screen
-        SDL_RenderPresent(renderer);
+        ////Update screen
+        //SDL_RenderPresent(renderer);
+
+        ren->swap();
 
         Uint64 end = SDL_GetPerformanceCounter();
 
