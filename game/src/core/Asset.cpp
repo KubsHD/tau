@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <cstdio>
+#include <string>
 
 const char* Asset::get_real_path(const char* vpath)
 {
@@ -27,9 +28,9 @@ const char* Asset::get_real_path(const char* vpath)
 	int size = snprintf(NULL, 0, "%sdata/", base);
 	char* buf = (char*)malloc(size + 1);
 	sprintf(buf, "%sdata/", base);
-	path_prefix = buf;
+	const char* path_prefix = buf;
 #else
-	path_prefix = "data/";
+	const char* path_prefix = "data/";
 #endif
 	printf("asset: path: %s\n", path_prefix);
 #endif

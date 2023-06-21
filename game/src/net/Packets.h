@@ -4,8 +4,8 @@
 
 #include <vector>
 #include <iterator>
-#include <utils/Serialization.h>
-#include <game/GameObject.h>
+#include "../utils/Serialization.h"
+#include "../game/GameObject.h"
 #include <string>
 
 class Player;
@@ -64,7 +64,7 @@ struct Packet {
     template<typename Stream> bool Serialize(Stream & stream)
     {
         serialize_int32(stream, type);
-        serialize_char_vector(stream, data, data.size());
+        serialize_char_vector(stream, data);
         serialize_uint32(stream, tick);
         return true;
     }

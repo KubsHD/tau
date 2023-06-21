@@ -133,8 +133,9 @@ void net_update(int own_id, EnetClient* c)
 void net_connect(EnetClient* c)
 {
     if (!c->connect("127.0.0.1", "1234"))
-        __debugbreak();
-
+        {
+        //__debugbreak();
+        }
     Packet welcome_packet = WRAP_PACKET(PacketType::NEW_PLAYER, new_player_packet("burgir"));
     c->send(welcome_packet);
 
