@@ -38,7 +38,7 @@ set_source_files_properties(game_SRC PROPERTIES LANGUAGE CXX)
 set(game_libs enet SDL2-static SDL2main glm GameNetworkingSockets::static protobuf::libprotoc)
 
 if (WIN32)
-list(APPEND game_libs ws2_32 winmm)
+list(APPEND game_libs ws2_32 winmm d3dcompiler)
 endif()
 
 if(NOT WINDOWS_STORE)

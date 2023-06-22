@@ -127,15 +127,24 @@ Renderer::Renderer(SDL_Window* winRef)
 	
 	D3D11_RASTERIZER_DESC rasterizerDesc = {
 		.FillMode = D3D11_FILL_SOLID,
-		.CullMode = D3D11_CULL_BACK,
+		.CullMode = D3D11_CULL_NONE,
 	};
+
+	rasterizerDesc.FrontCounterClockwise = true;
+	rasterizerDesc.DepthBias = 0;
+	rasterizerDesc.DepthBiasClamp = 0.0f;
+	rasterizerDesc.SlopeScaledDepthBias = 0.0f;
+	rasterizerDesc.DepthClipEnable = true;
+	rasterizerDesc.ScissorEnable = false;
+	rasterizerDesc.MultisampleEnable = false;
+	rasterizerDesc.AntialiasedLineEnable = false;
 
 	ThrowIfFailed(m_device->CreateRasterizerState(&rasterizerDesc, m_rasterizerState.GetAddressOf()));
 
 
 	D3D11_SAMPLER_DESC ImageSamplerDesc = {};
 
-	ImageSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	ImageSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
 	ImageSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
 	ImageSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 	ImageSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -245,10 +254,10 @@ spt::ref<Texture> Renderer::create_texture(TextureCreateDesc tcd)
 	desc.MipLevels = 1;
 	desc.ArraySize = 1;
 	desc.Format = (DXGI_FORMAT)tcd.format;
+	desc.Usage = D3D11_USAGE_IMMUTABLE;
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	desc.SampleDesc.Count = 1;
 	desc.SampleDesc.Quality = 0;
-	desc.Usage = D3D11_USAGE_DEFAULT;
-	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 
 	D3D11_SUBRESOURCE_DATA data{};
 	data.pSysMem = tcd.data.data();
@@ -272,7 +281,9 @@ void Renderer::draw_texture(spt::ref<Pipeline> pip, spt::ref<Buffer> vertexBuffe
 	UINT stride = sizeof(float) * 4;
 	UINT offset = 0;
 
-	m_ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_ctx->RSSetState(m_rasterizerState.Get());
+
+	m_ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_ctx->IASetInputLayout(pip->inputLayout.Get());
 	m_ctx->IASetVertexBuffers(0, 1, vertexBuffer->buf.GetAddressOf(), &stride, &offset);
 
@@ -282,7 +293,7 @@ void Renderer::draw_texture(spt::ref<Pipeline> pip, spt::ref<Buffer> vertexBuffe
 	m_ctx->PSSetShaderResources(0, 1, texture->srv.GetAddressOf());
 	m_ctx->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 
-	m_ctx->Draw(4, 0);
+	m_ctx->Draw(6, 0);
 }
 
 void Renderer::swap()

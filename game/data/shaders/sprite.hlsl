@@ -8,7 +8,7 @@ PSInput VSMain(float2 position : POSITION, float2 texcoord : TEXCOORD0)
 {
     PSInput result;
 
-    result.position = float4(position, 0.0, 0.0);
+    result.position = float4(position, 0.0, 1.0);
     result.texcoord = texcoord;
 
     return result;

@@ -228,7 +228,7 @@ int main(int argc, char* argv[])
 
     auto quadVertexBuffer = ren->create_buffer({
         .bindFlags = D3D11_BIND_VERTEX_BUFFER,
-        .byteWidth = sizeof(float) * 24,
+        .byteWidth = sizeof(vertices2),
         .data = vertices2
     });
 
