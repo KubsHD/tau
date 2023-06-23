@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
     //enet
     enet_initialize();
 
-#if WIN32
+#if WIN32 || 1
 
 	std::thread server_thread([]() {
 
@@ -175,6 +175,7 @@ int main(int argc, char* argv[])
 		s->Run();
 	});
 #else
+
     if(strcmp(argv[1], "server") == 0)
     {
         spt::scope<Server> s = spt::create_scope<Server>();
@@ -227,7 +228,7 @@ int main(int argc, char* argv[])
     });
 
     auto quadVertexBuffer = ren->create_buffer({
-        .bindFlags = D3D11_BIND_VERTEX_BUFFER,
+        .bindFlags = BindFlags::BIND_VERTEX_BUFFER,
         .byteWidth = sizeof(vertices2),
         .data = vertices2
     });
@@ -235,7 +236,7 @@ int main(int argc, char* argv[])
     auto cookie2 = ren->create_texture({
         .name = "cookie",
         .size = {width, height},
-        .format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+        .format = ColorFormat::RGBA8_SRGB,
         .data = std::vector<char>(data, data + (width * height * channels))
      });
 

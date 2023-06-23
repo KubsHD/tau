@@ -25,7 +25,7 @@ FetchContent_MakeAvailable(cglm)
 
 set(BUILD_SHARED_LIBS FALSE)
 
-set(game_src_paths "${PROJECT_SOURCE_DIR}/src/*.cpp" "${PROJECT_SOURCE_DIR}/src/*.h")
+set(game_src_paths "${PROJECT_SOURCE_DIR}/src/*.cpp" "${PROJECT_SOURCE_DIR}/src/*.h" "${PROJECT_SOURCE_DIR}/src/*.mm")
 
 
 file(GLOB_RECURSE game_SRC ${game_src_paths})
@@ -39,6 +39,10 @@ set(game_libs enet SDL2-static SDL2main glm GameNetworkingSockets::static protob
 
 if (WIN32)
 list(APPEND game_libs ws2_32 winmm d3dcompiler)
+endif()
+
+if (APPLE)
+list(APPEND game_libs "-framework Metal")
 endif()
 
 if(NOT WINDOWS_STORE)
@@ -63,6 +67,7 @@ target_compile_definitions(splatter PRIVATE _CRT_SECURE_NO_WARNINGS=1)
 target_include_directories(splatter PUBLIC "${PROJECT_SOURCE_DIR}/src")
 target_include_directories(splatter PUBLIC "${PROJECT_SOURCE_DIR}/src/lib")
 target_include_directories(splatter PUBLIC "${PROJECT_SOURCE_DIR}/../deps/GameNetworkingSockets/GameNetworkingSockets/include")
+target_include_directories(splatter PUBLIC "${PROJECT_SOURCE_DIR}/src/lib/metal-cpp")
 target_precompile_headers(splatter PRIVATE "<string>")
 
 

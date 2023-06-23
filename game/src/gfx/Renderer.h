@@ -16,15 +16,41 @@ using namespace Microsoft::WRL;
 #else if APPLE
 
 
+#include <Metal/Metal.hpp>
+#include <QuartzCore/QuartzCore.hpp>
+
 #endif
 
 struct SDL_Window;
 
+enum class BindFlags {
+	BIND_VERTEX_BUFFER,
+	BIND_INDEX_BUFFER
+};
+
+enum class ColorFormat {
+	RGBA8_SRGB
+};
 
 struct PipelineCreateDesc {
 	std::string vertexShader;
 	std::string pixelShader;
 };
+
+struct TextureCreateDesc {
+	std::string name;
+	glm::vec2 size;
+	ColorFormat format;
+	std::vector<char> data;
+};
+
+struct BufferCreateDesc {
+	BindFlags bindFlags;
+	int byteWidth;
+	void *data;
+};
+
+#ifdef WIN32
 
 struct Pipeline {
 	ComPtr<ID3D11InputLayout> inputLayout;
@@ -32,28 +58,27 @@ struct Pipeline {
 	ComPtr<ID3D11PixelShader> pixelShader;
 };
 
-struct TextureCreateDesc {
-	std::string name;
-	glm::vec2 size;
-	int format;
-	std::vector<char> data;
-};
-
 struct Texture {
 	ComPtr<ID3D11Texture2D> texture;
 	ComPtr<ID3D11ShaderResourceView> srv;
-};
-
-struct BufferCreateDesc {
-	int bindFlags;
-	int byteWidth;
-	void *data;
 };
 
 struct Buffer {
 	ComPtr<ID3D11Buffer> buf;
 };
 
+#else if APPLE
+
+struct Pipeline {
+};
+
+struct Texture {
+};
+
+struct Buffer {
+};
+
+#endif
 
 class Renderer {
 public:
@@ -79,5 +104,14 @@ public:
 	
 	ComPtr<ID3D11SamplerState> m_samplerState;
 
+#else if APPLE
+	CA::MetalLayer* m_swapchain;
+	CA::MetalDrawable* m_drawable;
+
+	MTL::Device* m_device;
+	MTL::CommandQueue* m_queue;
+	MTL::CommandBuffer* m_cmdBuffer;
+
+	MTL::RenderCommandEncoder* m_encoder;
 #endif
 };

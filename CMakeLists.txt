@@ -3,10 +3,9 @@ SET(CMAKE_CXX_STANDARD 20)
 
 if (APPLE)
     add_compile_definitions(APPLE)
-
 endif ()
 
-project(splatter)
+project(splatter C CXX OBJCXX)
 include(FetchContent)
 
 set(BUILD_SHARED_LIBS FALSE)
