@@ -67,6 +67,30 @@ struct Buffer {
 	ComPtr<ID3D11Buffer> buf;
 };
 
+inline D3D11_BIND_FLAG dx11_map_bind_flag(BindFlags bf)
+{
+	switch (bf)
+	{
+	case BindFlags::BIND_VERTEX_BUFFER:
+		return D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
+		break;
+	case BindFlags::BIND_INDEX_BUFFER:
+		return D3D11_BIND_FLAG::D3D11_BIND_INDEX_BUFFER;
+		break;
+	}
+}
+
+inline DXGI_FORMAT dx11_map_color_format(ColorFormat cf)
+{
+	switch (cf)
+	{
+	case ColorFormat::RGBA8_SRGB:
+		return DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		break;
+	}
+}
+
+
 #else if APPLE
 
 struct Pipeline {
