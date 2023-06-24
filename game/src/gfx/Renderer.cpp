@@ -229,7 +229,7 @@ spt::ref<Buffer> Renderer::create_buffer(BufferCreateDesc bcd)
 
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	bufferDesc.ByteWidth = bcd.byteWidth;
-	bufferDesc.BindFlags = bcd.bindFlags;
+	bufferDesc.BindFlags = dx11_map_bind_flag(bcd.bindFlags);
 	bufferDesc.CPUAccessFlags = 0;
 	bufferDesc.MiscFlags = 0;
 
@@ -254,7 +254,7 @@ spt::ref<Texture> Renderer::create_texture(TextureCreateDesc tcd)
 	desc.Height = tcd.size.y;
 	desc.MipLevels = 1;
 	desc.ArraySize = 1;
-	desc.Format = (DXGI_FORMAT)tcd.format;
+	desc.Format = dx11_map_color_format(tcd.format);
 	desc.Usage = D3D11_USAGE_IMMUTABLE;
 	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	desc.SampleDesc.Count = 1;

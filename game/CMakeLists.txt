@@ -25,7 +25,7 @@ FetchContent_MakeAvailable(cglm)
 
 set(BUILD_SHARED_LIBS FALSE)
 
-set(game_src_paths "${PROJECT_SOURCE_DIR}/src/*.cpp" "${PROJECT_SOURCE_DIR}/src/*.h" "${PROJECT_SOURCE_DIR}/src/*.mm")
+set(game_src_paths "${PROJECT_SOURCE_DIR}/src/*.cpp" "${PROJECT_SOURCE_DIR}/src/*.h")
 
 
 file(GLOB_RECURSE game_SRC ${game_src_paths})
@@ -43,6 +43,7 @@ endif()
 
 if (APPLE)
 list(APPEND game_libs "-framework Metal")
+list(APPEND game_src_paths "${PROJECT_SOURCE_DIR}/src/*.mm")
 endif()
 
 if(NOT WINDOWS_STORE)

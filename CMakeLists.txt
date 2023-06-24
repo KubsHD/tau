@@ -5,7 +5,7 @@ if (APPLE)
     add_compile_definitions(APPLE)
 endif ()
 
-project(splatter C CXX OBJCXX)
+project(splatter C CXX)
 include(FetchContent)
 
 set(BUILD_SHARED_LIBS FALSE)
