@@ -120,15 +120,6 @@ void Renderer::clear()
 
 	m_cmdBuffer = m_queue->commandBuffer();
 
-	MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
-    MTL::RenderPassColorAttachmentDescriptor* cd = renderPassDescriptor->colorAttachments()->object(0);
-
-	cd->setClearColor(MTL::ClearColor(41.0f/255.0f, 42.0f/255.0f, 48.0f/255.0f, 1.0));
-	cd->setLoadAction(MTL::LoadActionClear);
-	cd->setTexture(m_drawable->texture());
-
-	auto encoder = m_cmdBuffer->renderCommandEncoder(renderPassDescriptor);
-	encoder->endEncoding();
 
 
 }
@@ -137,13 +128,21 @@ void Renderer::draw_texture(spt::ref<Pipeline> pip, spt::ref<Buffer> vertexBuffe
 {
     NS::AutoreleasePool* pPool = NS::AutoreleasePool::alloc()->init();
 
-    auto rpd = MTL::RenderPassDescriptor::alloc()->init();
-    auto cmd_enc = m_cmdBuffer->renderCommandEncoder(rpd);
+
+    MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
+    MTL::RenderPassColorAttachmentDescriptor* cd = renderPassDescriptor->colorAttachments()->object(0);
+
+    cd->setClearColor(MTL::ClearColor(41.0f/255.0f, 42.0f/255.0f, 48.0f/255.0f, 1.0));
+    cd->setLoadAction(MTL::LoadActionClear);
+    cd->setTexture(m_drawable->texture());
+
+    auto cmd_enc = m_cmdBuffer->renderCommandEncoder(renderPassDescriptor);
+
 
     cmd_enc->setRenderPipelineState(pip->pso);
 
     cmd_enc->setVertexBuffer(vertexBuffer->buf, 0,0);
-    cmd_enc->setCullMode( MTL::CullModeBack );
+    cmd_enc->setCullMode( MTL::CullModeNone );
     cmd_enc->setFrontFacingWinding( MTL::Winding::WindingCounterClockwise );
     cmd_enc->setFragmentTexture(texture->texture, 0);
 

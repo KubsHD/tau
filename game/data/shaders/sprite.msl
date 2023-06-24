@@ -26,7 +26,7 @@ PSInput vertex VSMain(uint vid [[vertex_id]],
 
 half4 fragment PSMain(PSInput input [[stage_in]], texture2d< half, access::sample > tex [[texture(0)]])
 {
-    constexpr sampler s( address::repeat, filter::linear );
+    constexpr sampler s( address::repeat, filter::nearest );
     half3 texel = tex.sample( s, input.texcoord ).rgb;
     return half4(texel, 1.0);
 }

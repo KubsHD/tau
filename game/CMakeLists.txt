@@ -28,7 +28,6 @@ set(BUILD_SHARED_LIBS FALSE)
 set(game_src_paths "${PROJECT_SOURCE_DIR}/src/*.cpp" "${PROJECT_SOURCE_DIR}/src/*.h")
 
 
-file(GLOB_RECURSE game_SRC ${game_src_paths})
 
 set_source_files_properties(game_SRC PROPERTIES LANGUAGE CXX)
 
@@ -50,6 +49,7 @@ if(NOT WINDOWS_STORE)
     list(APPEND game_libs "SDL2main") # don't link SDL2main on xbox since it uses a c++ entrypoint
 endif()
 
+file(GLOB_RECURSE game_SRC ${game_src_paths})
 
 # don't show console in release build
 
