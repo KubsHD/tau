@@ -1,3 +1,4 @@
+#ifdef WIN32
 #include "Renderer.h"
 
 #include <SDL.h>
@@ -300,3 +301,5 @@ void Renderer::swap()
 {
 	m_swapChain->Present(1, 0);
 }
+
+#endif

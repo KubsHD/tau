@@ -70,12 +70,19 @@ struct Buffer {
 #else if APPLE
 
 struct Pipeline {
+    MTL::Library* library;
+    MTL::Function* vertexShader;
+    MTL::Function* pixelShader;
+
+    MTL::RenderPipelineState* pso;
 };
 
 struct Texture {
+    MTL::Texture* texture;
 };
 
 struct Buffer {
+    MTL::Buffer* buf;
 };
 
 #endif
