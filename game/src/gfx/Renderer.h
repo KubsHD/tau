@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 #include <string>
 #include <vector>
+#include <queue>
 #include <core/Types.h>
 
 #if WIN32
@@ -67,6 +68,26 @@ struct Buffer {
 	ComPtr<ID3D11Buffer> buf;
 };
 
+struct DrawData {
+	ComPtr<ID3D11DeviceContext> cmdList;
+
+	spt::ref<Pipeline> pipeline;
+	spt::ref<Buffer> vertexBuffer;
+	spt::ref<Buffer> uniformBuffer;
+	
+	// todo: allow multiple texture binds
+	spt::ref<Texture> texture;
+
+	// todo: indexed rendering 
+	// spt::ref<Buffer> indexBuffer;
+	// uint32_t indexCount;
+
+	uint32_t vertexCount;
+	uint32_t vertexStride;
+	uint32_t vertexOffset;
+
+};
+
 inline D3D11_BIND_FLAG dx11_map_bind_flag(BindFlags bf)
 {
 	switch (bf)
@@ -120,9 +141,13 @@ public:
 	spt::ref<Buffer> create_buffer(BufferCreateDesc bcd);
 	spt::ref<Texture> create_texture(TextureCreateDesc tcd);
 
+	void submit_draw(DrawData dat);
 	void clear();
-	void draw_texture(spt::ref<Pipeline> pip, spt::ref<Buffer> vertexBuffer, spt::ref<Texture> texture, glm::vec2 pos, glm::vec2 size);
+	void commit();
 	void swap();
+
+private:
+	glm::mat4 m_mvp;
 
 	// windows stuff
 #if WIN32
@@ -135,6 +160,9 @@ public:
 	
 	ComPtr<ID3D11SamplerState> m_samplerState;
 
+	std::queue<ComPtr<ID3D11CommandList>> m_cmdLists;
+
+	D3D11_VIEWPORT viewport;
 #else if APPLE
 	CA::MetalLayer* m_swapchain;
 	CA::MetalDrawable* m_drawable;

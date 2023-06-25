@@ -301,7 +301,19 @@ int main(int argc, char* argv[])
 
         ren->clear();
 
-        ren->draw_texture(default_pipeline, quadVertexBuffer, cookie2, { 0, 0}, { 0, 0 });
+
+        // texture drawing
+        //ren->draw_texture(default_pipeline, quadVertexBuffer, cookie2, { 0, 0}, { 0, 0 });
+
+        DrawData dat;
+        dat.pipeline = default_pipeline;
+		dat.texture = cookie2;
+		dat.vertexBuffer = quadVertexBuffer;
+        dat.vertexCount = 6;
+		dat.vertexStride = sizeof(float) * 4;
+        dat.vertexOffset = 0;
+
+        ren->submit_draw(dat);
 
         ////Clear screen
         //SDL_RenderClear(renderer);
@@ -336,6 +348,7 @@ int main(int argc, char* argv[])
         ////Update screen
         //SDL_RenderPresent(renderer);
 
+        ren->commit();
         ren->swap();
 
         Uint64 end = SDL_GetPerformanceCounter();

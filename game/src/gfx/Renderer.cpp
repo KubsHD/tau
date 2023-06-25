@@ -162,7 +162,6 @@ Renderer::Renderer(SDL_Window* winRef)
 	
 	ThrowIfFailed(m_device->CreateSamplerState(&ImageSamplerDesc, m_samplerState.GetAddressOf()));
 
-	D3D11_VIEWPORT viewport = {};
 	
 	viewport.TopLeftX = 0;
 	viewport.TopLeftY = 0;
@@ -171,7 +170,6 @@ Renderer::Renderer(SDL_Window* winRef)
 	viewport.MinDepth = 0.0f;
 	viewport.MaxDepth = 1.0f;
 
-	m_ctx->RSSetViewports(1, &viewport);
 }
 
 Renderer::~Renderer()
@@ -270,31 +268,48 @@ spt::ref<Texture> Renderer::create_texture(TextureCreateDesc tcd)
 	return tex;
 }
 
+void Renderer::submit_draw(DrawData dat)
+{
+	ComPtr<ID3D11DeviceContext> pDeferredContext;
+	ThrowIfFailed(m_device->CreateDeferredContext(0, pDeferredContext.GetAddressOf()));
+	
+	pDeferredContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), 0);
+	pDeferredContext->RSSetViewports(1, &viewport);
+	pDeferredContext->RSSetState(m_rasterizerState.Get());
+
+	pDeferredContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pDeferredContext->IASetInputLayout(dat.pipeline->inputLayout.Get());
+	pDeferredContext->IASetVertexBuffers(0, 1, dat.vertexBuffer->buf.GetAddressOf(), &dat.vertexStride, &dat.vertexOffset);
+
+	pDeferredContext->VSSetShader(dat.pipeline->vertexShader.Get(), 0, 0);
+	pDeferredContext->PSSetShader(dat.pipeline->pixelShader.Get(), 0, 0);
+
+	pDeferredContext->PSSetShaderResources(0, 1, dat.texture->srv.GetAddressOf());
+	pDeferredContext->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+
+	pDeferredContext->Draw(6, 0);
+
+	ComPtr<ID3D11CommandList> cmd;
+	ThrowIfFailed(pDeferredContext->FinishCommandList(true, cmd.GetAddressOf()));
+
+	m_cmdLists.push(cmd);
+}
+
 void Renderer::clear()
 {
 	float backgroundColor[4] = { 0.0f, 0.2f, 0.25f, 1.0f };
 	m_ctx->ClearRenderTargetView(m_renderTargetView.Get(), backgroundColor);
-	m_ctx->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), 0);
+	m_ctx->RSSetViewports(1, &viewport);
+
 }
 
-void Renderer::draw_texture(spt::ref<Pipeline> pip, spt::ref<Buffer> vertexBuffer, spt::ref<Texture> texture, glm::vec2 pos, glm::vec2 size)
+void Renderer::commit()
 {
-	UINT stride = sizeof(float) * 4;
-	UINT offset = 0;
-
-	m_ctx->RSSetState(m_rasterizerState.Get());
-
-	m_ctx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_ctx->IASetInputLayout(pip->inputLayout.Get());
-	m_ctx->IASetVertexBuffers(0, 1, vertexBuffer->buf.GetAddressOf(), &stride, &offset);
-
-	m_ctx->VSSetShader(pip->vertexShader.Get(), 0, 0);
-	m_ctx->PSSetShader(pip->pixelShader.Get(), 0, 0);
-
-	m_ctx->PSSetShaderResources(0, 1, texture->srv.GetAddressOf());
-	m_ctx->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
-
-	m_ctx->Draw(6, 0);
+	while (!m_cmdLists.empty())
+	{
+		m_ctx->ExecuteCommandList(m_cmdLists.front().Get(), true);
+		m_cmdLists.pop();
+	}
 }
 
 void Renderer::swap()
