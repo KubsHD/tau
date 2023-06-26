@@ -31,7 +31,6 @@
 #include <net/Packets.h>
 #include <sstream>
 
-#include <DirectXMath.h>
 
 #include <core/Window.h>
 

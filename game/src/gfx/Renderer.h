@@ -134,6 +134,24 @@ struct Buffer {
     MTL::Buffer* buf;
 };
 
+struct DrawData {
+    spt::ref<Pipeline> pipeline;
+    spt::ref<Buffer> vertexBuffer;
+    spt::ref<Buffer> uniformBuffer;
+
+    // todo: allow multiple texture binds
+    spt::ref<Texture> texture;
+
+    // todo: indexed rendering
+    // spt::ref<Buffer> indexBuffer;
+    // uint32_t indexCount;
+
+    uint32_t vertexCount;
+    uint32_t vertexStride;
+    uint32_t vertexOffset;
+
+};
+
 #endif
 
 class Renderer {
@@ -174,6 +192,9 @@ private:
 
 	D3D11_VIEWPORT viewport;
 #else if APPLE
+    // https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/TripleBuffering.html#//apple_ref/doc/uid/TP40016642-CH5-SW1
+    dispatch_semaphore_t m_frameSemaphore;
+
 	CA::MetalLayer* m_swapchain;
 	CA::MetalDrawable* m_drawable;
 

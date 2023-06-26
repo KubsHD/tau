@@ -23,6 +23,8 @@ CA::MetalDrawable* next_drawable(CA::MetalLayer* layer)
 
 Renderer::Renderer(SDL_Window* winRef)
 {
+    m_frameSemaphore = dispatch_semaphore_create(3);
+
 	m_device = MTL::CreateSystemDefaultDevice();
 	auto metal_view = SDL_Metal_CreateView(winRef);
 
@@ -116,6 +118,8 @@ spt::ref<Texture> Renderer::create_texture(TextureCreateDesc tcd)
 
 void Renderer::clear()
 {
+    dispatch_semaphore_wait(m_frameSemaphore, DISPATCH_TIME_FOREVER);
+
 	m_drawable = next_drawable(m_swapchain);
 
 	m_cmdBuffer = m_queue->commandBuffer();
@@ -124,10 +128,14 @@ void Renderer::clear()
 
 }
 
-void Renderer::draw_texture(spt::ref<Pipeline> pip, spt::ref<Buffer> vertexBuffer, spt::ref<Texture> texture, glm::vec2 pos, glm::vec2 size)
+void Renderer::swap()
+{
+    // macos swaps automatically
+}
+
+void Renderer::submit_draw(DrawData dat)
 {
     NS::AutoreleasePool* pPool = NS::AutoreleasePool::alloc()->init();
-
 
     MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
     MTL::RenderPassColorAttachmentDescriptor* cd = renderPassDescriptor->colorAttachments()->object(0);
@@ -138,25 +146,35 @@ void Renderer::draw_texture(spt::ref<Pipeline> pip, spt::ref<Buffer> vertexBuffe
 
     auto cmd_enc = m_cmdBuffer->renderCommandEncoder(renderPassDescriptor);
 
+    cmd_enc->setRenderPipelineState(dat.pipeline->pso);
+    cmd_enc->setVertexBuffer(dat.vertexBuffer->buf, 0,0);
 
-    cmd_enc->setRenderPipelineState(pip->pso);
+    // setting uniforms as buffer with index 1
+    cmd_enc->setVertexBuffer(dat.uniformBuffer->buf, 0, 1);
 
-    cmd_enc->setVertexBuffer(vertexBuffer->buf, 0,0);
-    cmd_enc->setCullMode( MTL::CullModeNone );
     cmd_enc->setFrontFacingWinding( MTL::Winding::WindingCounterClockwise );
-    cmd_enc->setFragmentTexture(texture->texture, 0);
-
-    cmd_enc->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(6) );
-
+    cmd_enc->setFragmentTexture(dat.texture->texture, 0);
+    cmd_enc->drawPrimitives( MTL::PrimitiveType::PrimitiveTypeTriangle, NS::UInteger(dat.vertexOffset), NS::UInteger(dat.vertexCount) );
     cmd_enc->endEncoding();
 
     pPool->release();
 }
 
-void Renderer::swap()
+void Renderer::update_buffer(spt::ref<Buffer> buf, void *data, int size)
 {
-	m_cmdBuffer->presentDrawable(m_drawable);
-	m_cmdBuffer->commit();
+    memcpy(buf->buf->contents(), data, size);
+    buf->buf->didModifyRange(NS::Range(0, size));
+}
+
+void Renderer::commit()
+{
+    dispatch_semaphore_t sem = m_frameSemaphore;
+    m_cmdBuffer->addCompletedHandler(^void( MTL::CommandBuffer* pCmd ){
+        dispatch_semaphore_signal( sem );
+    });
+
+    m_cmdBuffer->presentDrawable(m_drawable);
+    m_cmdBuffer->commit();
 }
 
 #endif
