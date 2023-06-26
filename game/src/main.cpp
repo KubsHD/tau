@@ -3,6 +3,8 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 
+#define GLM_FORCE_XYZW_ONLY
+
 #include <steam/isteamnetworkingsockets.h>
 #include <steam/steamnetworkingsockets.h>
 #include <steam/isteamnetworkingutils.h>
@@ -18,6 +20,8 @@
 #include <game/Bullet.h>
 #include "net/NetworkLayer.h"
 #include <glm/glm.hpp>
+#include <glm/gtx/compatibility.hpp>
+#include <glm/gtx/matrix_major_storage.hpp>
 #include <memory>
 #include <algorithm>
 #include <enet/enet.h>
@@ -26,6 +30,8 @@
 #include <server/Server.h>
 #include <net/Packets.h>
 #include <sstream>
+
+#include <DirectXMath.h>
 
 #include <core/Window.h>
 
@@ -149,6 +155,19 @@ void net_connect(EnetClient* c)
 	world.players.push_back(identity.owned_player);
 }
 
+struct MVP {
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 projection;
+
+    glm::mat4 mvp;
+
+    inline void calc()
+    {
+        mvp = glm::transpose(projection * view * model);
+    }
+};
+
 int main(int argc, char* argv[])
 {
  //   SteamDatagramErrMsg msg;
@@ -240,6 +259,21 @@ int main(int argc, char* argv[])
         .data = std::vector<char>(data, data + (width * height * channels))
      });
 
+
+    MVP p = {
+        .model = glm::scale(glm::mat4(1.0f), glm::vec3(32, 32, 1)),
+        .view = glm::mat4(1.0f),
+        .projection = glm::ortho(0.0f, 600.0f, 400.0f, 0.0f, -1.0f, 1.0f),
+        .mvp = glm::transpose(p.projection * p.model * p.view)
+    };
+
+	auto mvpBuffer = ren->create_buffer({
+		.bindFlags = BindFlags::BIND_CONSTANT_BUFFER,
+		.byteWidth = sizeof(MVP),
+		.data = &p
+	});
+
+
     bool quit = false;
     SDL_Event e;
 
@@ -308,11 +342,16 @@ int main(int argc, char* argv[])
         DrawData dat;
         dat.pipeline = default_pipeline;
 		dat.texture = cookie2;
+		dat.uniformBuffer = mvpBuffer;
 		dat.vertexBuffer = quadVertexBuffer;
         dat.vertexCount = 6;
 		dat.vertexStride = sizeof(float) * 4;
         dat.vertexOffset = 0;
 
+        p.model = glm::translate(p.model, glm::vec3(0.1f,0.1f,0));
+        p.calc();
+
+        ren->update_buffer(mvpBuffer, &p, sizeof(p));
         ren->submit_draw(dat);
 
         ////Clear screen

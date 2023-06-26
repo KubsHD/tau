@@ -10,6 +10,8 @@
 
 #include <d3dcompiler.h>
 
+#include <core/Macros.h>
+
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dxguid.lib")
@@ -170,6 +172,36 @@ Renderer::Renderer(SDL_Window* winRef)
 	viewport.MinDepth = 0.0f;
 	viewport.MaxDepth = 1.0f;
 
+	// * * * * * Depth/Stencil View for render View * * * * * //
+	D3D11_TEXTURE2D_DESC depthStencilDesc;
+	ZeroMemory(&depthStencilDesc, sizeof(D3D11_TEXTURE2D_DESC));
+
+	depthStencilDesc.Width = SCREEN_WIDTH;
+	depthStencilDesc.Height = SCREEN_HEIGHT;
+	depthStencilDesc.MipLevels = 1;
+	depthStencilDesc.ArraySize = 1;
+	depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;    // depth 24byte, stencil 8byte
+	depthStencilDesc.SampleDesc.Count = 1;
+	depthStencilDesc.SampleDesc.Quality = 0;
+	depthStencilDesc.Usage = D3D11_USAGE_DEFAULT;
+	depthStencilDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+	depthStencilDesc.CPUAccessFlags = 0;
+	depthStencilDesc.MiscFlags = 0;
+
+	// Create depth/stencil view
+	ThrowIfFailed(m_device->CreateTexture2D(&depthStencilDesc, NULL, &pDepthStencilBuffer));
+	ThrowIfFailed(m_device->CreateDepthStencilView(pDepthStencilBuffer, NULL, &pDepthStencilView));
+
+	// Create depth state - How depth works
+	D3D11_DEPTH_STENCIL_DESC depthStencilStateDesc;
+	ZeroMemory(&depthStencilStateDesc, sizeof(D3D11_DEPTH_STENCIL_DESC));
+
+	depthStencilStateDesc.DepthEnable = true;
+	depthStencilStateDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+	depthStencilStateDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+
+	ThrowIfFailed(m_device->CreateDepthStencilState(&depthStencilStateDesc, &pDepthStencilState));
+
 }
 
 Renderer::~Renderer()
@@ -225,10 +257,13 @@ spt::ref<Buffer> Renderer::create_buffer(BufferCreateDesc bcd)
 	// Vertex buffer desciption
 	D3D11_BUFFER_DESC bufferDesc{};
 
+	//bufferDesc.Usage = bcd.bindFlags == BindFlags::BIND_CONSTANT_BUFFER ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
+	
 	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	bufferDesc.ByteWidth = bcd.byteWidth;
 	bufferDesc.BindFlags = dx11_map_bind_flag(bcd.bindFlags);
 	bufferDesc.CPUAccessFlags = 0;
+	//bufferDesc.CPUAccessFlags = bcd.bindFlags == BindFlags::BIND_CONSTANT_BUFFER ? D3D11_CPU_ACCESS_WRITE : 0;
 	bufferDesc.MiscFlags = 0;
 
 	// Create vertex buffer data
@@ -268,6 +303,11 @@ spt::ref<Texture> Renderer::create_texture(TextureCreateDesc tcd)
 	return tex;
 }
 
+void Renderer::update_buffer(spt::ref<Buffer> buf, void* data, int size)
+{
+	m_ctx->UpdateSubresource(buf->buf.Get(), 0, nullptr, data, 0, 0);
+}
+
 void Renderer::submit_draw(DrawData dat)
 {
 	ComPtr<ID3D11DeviceContext> pDeferredContext;
@@ -284,6 +324,7 @@ void Renderer::submit_draw(DrawData dat)
 	pDeferredContext->VSSetShader(dat.pipeline->vertexShader.Get(), 0, 0);
 	pDeferredContext->PSSetShader(dat.pipeline->pixelShader.Get(), 0, 0);
 
+	pDeferredContext->VSSetConstantBuffers(0, 1, dat.uniformBuffer->buf.GetAddressOf());
 	pDeferredContext->PSSetShaderResources(0, 1, dat.texture->srv.GetAddressOf());
 	pDeferredContext->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 
@@ -299,8 +340,8 @@ void Renderer::clear()
 {
 	float backgroundColor[4] = { 0.0f, 0.2f, 0.25f, 1.0f };
 	m_ctx->ClearRenderTargetView(m_renderTargetView.Get(), backgroundColor);
+	m_ctx->ClearDepthStencilView(pDepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	m_ctx->RSSetViewports(1, &viewport);
-
 }
 
 void Renderer::commit()

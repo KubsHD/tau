@@ -26,7 +26,8 @@ struct SDL_Window;
 
 enum class BindFlags {
 	BIND_VERTEX_BUFFER,
-	BIND_INDEX_BUFFER
+	BIND_INDEX_BUFFER,
+	BIND_CONSTANT_BUFFER
 };
 
 enum class ColorFormat {
@@ -98,6 +99,9 @@ inline D3D11_BIND_FLAG dx11_map_bind_flag(BindFlags bf)
 	case BindFlags::BIND_INDEX_BUFFER:
 		return D3D11_BIND_FLAG::D3D11_BIND_INDEX_BUFFER;
 		break;
+	case BindFlags::BIND_CONSTANT_BUFFER:
+		return D3D11_BIND_FLAG::D3D11_BIND_CONSTANT_BUFFER;
+		break;
 	}
 }
 
@@ -141,6 +145,8 @@ public:
 	spt::ref<Buffer> create_buffer(BufferCreateDesc bcd);
 	spt::ref<Texture> create_texture(TextureCreateDesc tcd);
 
+	void update_buffer(spt::ref<Buffer> buf, void* data, int size);
+
 	void submit_draw(DrawData dat);
 	void clear();
 	void commit();
@@ -159,6 +165,10 @@ private:
 	ComPtr<ID3D11RasterizerState> m_rasterizerState;
 	
 	ComPtr<ID3D11SamplerState> m_samplerState;
+
+	ID3D11DepthStencilState* pDepthStencilState = NULL;
+	ID3D11DepthStencilView* pDepthStencilView = NULL;
+	ID3D11Texture2D* pDepthStencilBuffer = NULL;
 
 	std::queue<ComPtr<ID3D11CommandList>> m_cmdLists;
 
