@@ -14,7 +14,7 @@
 
 using namespace Microsoft::WRL;
 
-#else if APPLE
+#elif APPLE
 
 
 #include <Metal/Metal.hpp>
@@ -116,7 +116,7 @@ inline DXGI_FORMAT dx11_map_color_format(ColorFormat cf)
 }
 
 
-#else if APPLE
+#elif APPLE
 
 struct Pipeline {
     MTL::Library* library;
