@@ -3,9 +3,10 @@
 #ifndef SPLATTER_GAMEOBJECT_H
 #define SPLATTER_GAMEOBJECT_H
 
-#include <gfx/Texture.h>
 #include "SDL_rect.h"
+
 #include <glm/fwd.hpp>
+#include <gfx/api/Resources.h>
 
 
 struct Transform {
@@ -21,9 +22,9 @@ protected:
     SDL_Rect rect;
     Transform transform;
 public:
-    STexture* texture;
-    GameObject(STexture* texture, int x, int y);
-    void Render(SDL_Renderer* renderer);
+    spt::ref<Texture> texture;
+    GameObject(spt::ref<Texture> texture, int x, int y);
+    void Render();
     SDL_Rect GetRect();
     float GetX() const;
     float GetY() const;

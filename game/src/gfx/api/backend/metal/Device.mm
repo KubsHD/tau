@@ -1,7 +1,8 @@
 #ifdef APPLE
 
+#include "../../Device.h"
+
 #include "SDL_metal.h"
-#include "Renderer.h"
 #include <fstream>
 #include <core/Asset.h>
 
@@ -21,7 +22,7 @@ CA::MetalDrawable* next_drawable(CA::MetalLayer* layer)
   return pMetalCppDrawable;
 } 
 
-Renderer::Renderer(SDL_Window* winRef)
+Device::Device(SDL_Window* winRef)
 {
 	m_device = MTL::CreateSystemDefaultDevice();
 	auto metal_view = SDL_Metal_CreateView(winRef);
@@ -38,12 +39,12 @@ Renderer::Renderer(SDL_Window* winRef)
 
 }
 
-Renderer::~Renderer()
+Device::~Device()
 {
     m_device->release();
 }
 
-spt::ref<Pipeline> Renderer::create_pipeline(PipelineCreateDesc pcd)
+spt::ref<Pipeline> Device::create_pipeline(PipelineCreateDesc pcd)
 {
 	auto pipeline = spt::create_ref<Pipeline>();
 
@@ -83,7 +84,7 @@ spt::ref<Pipeline> Renderer::create_pipeline(PipelineCreateDesc pcd)
     return pipeline;
 }
 
-spt::ref<Buffer> Renderer::create_buffer(BufferCreateDesc bcd)
+spt::ref<Buffer> Device::create_buffer(BufferCreateDesc bcd)
 {
 	auto buf = spt::create_ref<Buffer>();
 
@@ -92,7 +93,7 @@ spt::ref<Buffer> Renderer::create_buffer(BufferCreateDesc bcd)
 	return buf;
 }
 
-spt::ref<Texture> Renderer::create_texture(TextureCreateDesc tcd)
+spt::ref<Texture> Device::create_texture(TextureCreateDesc tcd)
 {
 	auto tex = spt::create_ref<Texture>();
 
@@ -114,7 +115,7 @@ spt::ref<Texture> Renderer::create_texture(TextureCreateDesc tcd)
 	return tex;
 }
 
-void Renderer::clear()
+void Device::clear()
 {
 	m_drawable = next_drawable(m_swapchain);
 
@@ -124,7 +125,7 @@ void Renderer::clear()
 
 }
 
-void Renderer::draw_texture(spt::ref<Pipeline> pip, spt::ref<Buffer> vertexBuffer, spt::ref<Texture> texture, glm::vec2 pos, glm::vec2 size)
+void Device::draw_texture(spt::ref<Pipeline> pip, spt::ref<Buffer> vertexBuffer, spt::ref<Texture> texture, glm::vec2 pos, glm::vec2 size)
 {
     NS::AutoreleasePool* pPool = NS::AutoreleasePool::alloc()->init();
 
@@ -153,7 +154,7 @@ void Renderer::draw_texture(spt::ref<Pipeline> pip, spt::ref<Buffer> vertexBuffe
     pPool->release();
 }
 
-void Renderer::swap()
+void Device::swap()
 {
 	m_cmdBuffer->presentDrawable(m_drawable);
 	m_cmdBuffer->commit();

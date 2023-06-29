@@ -2,7 +2,7 @@
 #include "Player.h"
 #include <glm/glm.hpp>
 
-Bullet::Bullet(int mx, int my, STexture* texture, Player* player, int player_id, int id)
+Bullet::Bullet(int mx, int my, spt::ref<Texture> texture, Player* player, int player_id, int id)
 : GameObject(texture, player->GetX(), player->GetY()), player_id(player_id), id(id)
 {
     float vx_ = (float)mx - transform.x - (float)player->GetWidth() / 2;

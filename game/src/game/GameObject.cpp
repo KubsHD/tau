@@ -1,21 +1,20 @@
 #include "GameObject.h"
 #include <SDL.h>
 
-GameObject::GameObject(STexture *texture, int x, int y) : texture(texture)
+GameObject::GameObject(spt::ref<Texture> texture, int x, int y) : texture(texture)
 {
     this->transform.x = x;
     this->transform.y = y;
     if(texture == NULL)
         return;
-    rect.h = texture->height;
-    rect.w = texture->width;
+    rect.h = texture->desc.size.y;
+    rect.w = texture->desc.size.x;
 }
 
-void GameObject::Render(SDL_Renderer* renderer)
+void GameObject::Render()
 {
     rect.x = (int)transform.x;
     rect.y = (int)transform.y;
-    SDL_RenderCopy(renderer, texture->texture, NULL, &rect);
 }
 
 SDL_Rect GameObject::GetRect()

@@ -20,12 +20,12 @@ void Player::Move(const Uint8 *keyStates) {
     }
 }
 
-Player::Player(STexture *texture, int x, int y) : GameObject(texture, x, y)
+Player::Player(spt::ref<Texture> texture, int x, int y) : GameObject(texture, x, y)
 {
 
 }
 
-Player::Player(STexture *texture, int x, int y, int id) : Player(texture, x, y)
+Player::Player(spt::ref<Texture> texture, int x, int y, int id) : Player(texture, x, y)
 {
     this->id = id;
 }

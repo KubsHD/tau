@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <string>
 #include "lib/stb_image.h"
-#include <gfx/Texture.h>
 #include <game/Player.h>
 #include <game/Bullet.h>
 #include "net/NetworkLayer.h"
@@ -40,6 +39,7 @@
 #include <core/Macros.h>
 #include <core/Input.h>
 #include <core/Asset.h>
+#include <gfx/api/Device.h>
 
 struct World {
     int local_bullet_idx = 0;
@@ -53,7 +53,7 @@ struct NetworkIdentity {
     Player* owned_player;
 } identity;
 
-SDL_Renderer* renderer = NULL;
+spt::scope<Device> ren;
 
 static float vertices[] = {
 	// pos      // tex
@@ -65,6 +65,20 @@ static float vertices[] = {
 	1.0f, 1.0f, 1.0f, 1.0f,
 	1.0f, 0.0f, 1.0f, 0.0f
 };
+
+spt::ref<Texture> load_and_create_texture(const spt::scope<Device>& dev, std::string path)
+{
+	int channels, width, height;
+
+	stbi_uc* data = stbi_load(Asset::get_real_path(path), &width, &height, &channels, 0);
+
+	return dev->create_texture({
+		.name = path,
+		.size = {width, height},
+		.format = ColorFormat::RGBA8_SRGB,
+		.data = std::vector<char>(data, data + (width * height * channels))
+		});
+}
 
 
 void net_update(int own_id, EnetClient* c)
@@ -123,8 +137,7 @@ void net_update(int own_id, EnetClient* c)
 				spt::deserialize<new_player_packet>(rec.data);
 
             world.players.push_back(new Player(
-                new STexture(Asset::get_real_path(std::string(np.avatar_texture_name.begin(), np.avatar_texture_name.end()) + ".png"),
-                    renderer),
+                load_and_create_texture(ren, std::string(np.avatar_texture_name.begin(), np.avatar_texture_name.end()) + ".png"),
                 15, 20, np.pid));
             break;
         }
@@ -151,7 +164,7 @@ void net_connect(EnetClient* c)
     Packet welcome_packet = WRAP_PACKET(PacketType::NEW_PLAYER, new_player_packet("burgir"));
     c->send(welcome_packet);
 
-    identity.owned_player = new Player(new STexture(Asset::get_real_path(std::string("burgir") + ".png"), renderer), 15, 20, -1);
+    identity.owned_player = new Player(load_and_create_texture(ren, (std::string("burgir") + ".png")), 15, 20, -1);
 	world.players.push_back(identity.owned_player);
 }
 
@@ -167,6 +180,7 @@ struct MVP {
         mvp = glm::transpose(projection * view * model);
     }
 };
+
 
 int main(int argc, char* argv[])
 {
@@ -204,7 +218,6 @@ int main(int argc, char* argv[])
 
     spt::scope<Input> input;
     spt::scope<Window> window;
-    spt::scope<Renderer> ren;
     
     SDL_Texture* t1 = NULL;
 
@@ -213,15 +226,15 @@ int main(int argc, char* argv[])
     //Create window
     window = spt::create_scope<Window>(SCREEN_WIDTH, SCREEN_HEIGHT, "Splatter");
     input = spt::create_scope<Input>();
-    ren = spt::create_scope<Renderer>(window->get_ptr());
+    ren = spt::create_scope<Device>(window->get_ptr());
 
     //Create renderer
     //renderer = SDL_CreateRenderer(window->get_ptr(), -1, SDL_RENDERER_ACCELERATED);
     //ASSERT_SDL(renderer != NULL)
 
-    SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
+    //SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
-    STexture* cookie = new STexture(Asset::get_real_path("cookie.png"), renderer);
+    //STexture* cookie = new STexture(Asset::get_real_path("cookie.png"), renderer);
 
 	EnetClient* c = new EnetClient();
 
@@ -236,10 +249,8 @@ int main(int argc, char* argv[])
 		1.0f, 0.0f, 1.0f, 0.0f
 	};
     
+    auto cookie2 = load_and_create_texture(ren, "cookie.png");
 
-	int channels, width, height;
-
-	stbi_uc* data = stbi_load(Asset::get_real_path("cookie.png"), &width, &height, &channels, 0);
 
     auto default_pipeline = ren->create_pipeline({
         .vertexShader = "shaders/sprite.hlsl",
@@ -251,13 +262,6 @@ int main(int argc, char* argv[])
         .byteWidth = sizeof(vertices2),
         .data = vertices2
     });
-
-    auto cookie2 = ren->create_texture({
-        .name = "cookie",
-        .size = {width, height},
-        .format = ColorFormat::RGBA8_SRGB,
-        .data = std::vector<char>(data, data + (width * height * channels))
-     });
 
 
     MVP p = {
@@ -321,7 +325,7 @@ int main(int argc, char* argv[])
 
             if (Input::mouse_down(0))
             {
-                world.bullets.push_back(new Bullet(Input::get_mouse_pos().x, Input::get_mouse_pos().y, cookie, identity.owned_player,
+                world.bullets.push_back(new Bullet(Input::get_mouse_pos().x, Input::get_mouse_pos().y, cookie2, identity.owned_player,
                     identity.player_id, world.local_bullet_idx++));
                 
                 // notify other players about new bullet spawn
@@ -357,10 +361,23 @@ int main(int argc, char* argv[])
         ////Clear screen
         //SDL_RenderClear(renderer);
 
-        //for (auto p_ : world.players)
-        //{
-        //    p_->Render(renderer);
-        //}
+		for (const auto& p_ : world.players)
+		{
+			DrawData dat;
+			dat.pipeline = default_pipeline;
+			dat.texture = cookie2;
+			dat.uniformBuffer = mvpBuffer;
+			dat.vertexBuffer = quadVertexBuffer;
+			dat.vertexCount = 6;
+			dat.vertexStride = sizeof(float) * 4;
+			dat.vertexOffset = 0;
+
+			p.model = glm::translate(p.model, glm::vec3(p_->GetX(), p_->GetY(), 0));
+			p.calc();
+
+			ren->update_buffer(mvpBuffer, &p, sizeof(p));
+			ren->submit_draw(dat);
+		}
 
         glm::vec2 b_pos;
 
