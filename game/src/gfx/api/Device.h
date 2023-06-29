@@ -63,6 +63,9 @@ private:
 
 	D3D11_VIEWPORT viewport;
 #else if APPLE
+	// https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/MTLBestPracticesGuide/TripleBuffering.html#//apple_ref/doc/uid/TP40016642-CH5-SW1
+	dispatch_semaphore_t m_frameSemaphore;
+
 	CA::MetalLayer* m_swapchain;
 	CA::MetalDrawable* m_drawable;
 
