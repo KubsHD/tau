@@ -12,12 +12,21 @@ struct PSInput
     float2 texcoord;
 };
 
+struct mvp
+{
+    float4x4 model;
+    float4x4 view;
+    float4x4 projection;
+    float4x4 mvp;
+};
+
 PSInput vertex VSMain(uint vid [[vertex_id]],
-               device const VSInput* vin [[buffer(0)]])
+               device const VSInput* vin [[buffer(0)]],
+               constant mvp &uniforms [[buffer(1)]] )
 {
     PSInput result;
 
-    result.position = float4(vin[vid].position, 0.0, 1.0);
+    result.position = float4(vin[vid].position, 0.0, 1.0) * uniforms.mvp;
     result.texcoord = vin[vid].texcoord;
 
     return result;
