@@ -80,7 +80,9 @@ struct DrawData {
 
 	spt::ref<Pipeline> pipeline;
 	spt::ref<Buffer> vertexBuffer;
-	spt::ref<Buffer> uniformBuffer;
+
+	spt::ref<Buffer> staticUniformBuffer;
+	spt::ref<Buffer> dynamicUniformBuffer;
 
 	void* dataToUpdateTheBufferWith = nullptr;
 

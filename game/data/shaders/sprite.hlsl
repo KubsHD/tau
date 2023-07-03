@@ -1,20 +1,27 @@
+#pragma pack_matrix(row_major)
+
 struct PSInput
 {
     float4 position : SV_POSITION;
     float2 texcoord : TEXCOORD0;
 };
 
-cbuffer m : register(b0)
+cbuffer vp : register(b0)
 {
-    float4x4 model;
     float4x4 view;
     float4x4 projection;
-    float4x4 mvp;
 };
+
+cbuffer m : register(b1)
+{
+    float4x4 model;
+}
 
 PSInput VSMain(float2 position : POSITION, float2 texcoord : TEXCOORD0)
 {
     PSInput result;
+
+	float4x4 mvp = mul(model, mul(projection, view));
 
     result.position = mul(float4(position, 0.0f, 1.0f), mvp);
     result.texcoord = texcoord;

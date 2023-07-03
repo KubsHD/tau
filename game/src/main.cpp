@@ -167,19 +167,14 @@ void net_connect(EnetClient* c)
 	world.players.push_back(identity.owned_player);
 }
 
-struct MVP {
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 projection;
-
-    glm::mat4 mvp;
-
-    inline void calc()
-    {
-        mvp = glm::transpose(projection * view * model);
-    }
+struct StaticSceneData {
+	glm::mat4 view;
+	glm::mat4 projection;
 };
 
+struct InstanceData {
+    glm::mat4 model;
+};
 
 int main(int argc, char* argv[])
 {
@@ -263,19 +258,37 @@ int main(int argc, char* argv[])
     });
 
 
-    MVP p = {
-        .model = glm::scale(glm::mat4(1.0f), glm::vec3(32, 32, 1)),
+    StaticSceneData p = {
         .view = glm::mat4(1.0f),
         .projection = glm::ortho(0.0f, 600.0f, 400.0f, 0.0f, -1.0f, 1.0f),
-        .mvp = glm::transpose(p.projection * p.model * p.view)
     };
 
 	auto mvpBuffer = ren->create_buffer({
 		.bindFlags = BindFlags::BIND_CONSTANT_BUFFER,
-		.byteWidth = sizeof(MVP),
+		.byteWidth = sizeof(p),
 		.data = &p
 	});
 
+    InstanceData d1 = {
+        .model = glm::scale(glm::mat4(1.0f), glm::vec3(32, 32, 1))
+    };
+
+    InstanceData d2 = {
+        .model = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(32, 32, 1)), glm::vec3(100.0f, 100.0f, 0.0f))
+    };
+
+	auto d1Buf = ren->create_buffer({
+		.bindFlags = BindFlags::BIND_CONSTANT_BUFFER,
+		.byteWidth = sizeof(d1),
+		.data = &d1
+	});
+    
+	auto d2Buf = ren->create_buffer({
+		.bindFlags = BindFlags::BIND_CONSTANT_BUFFER,
+		.byteWidth = sizeof(d2),
+		.data = &d2
+	});
+    
 
     bool quit = false;
     SDL_Event e;
@@ -345,38 +358,36 @@ int main(int argc, char* argv[])
         DrawData dat;
         dat.pipeline = default_pipeline;
 		dat.texture = cookie2;
-		dat.uniformBuffer = mvpBuffer;
+		dat.staticUniformBuffer = mvpBuffer;
+        dat.dynamicUniformBuffer = d1Buf;
 		dat.vertexBuffer = quadVertexBuffer;
         dat.vertexCount = 6;
 		dat.vertexStride = sizeof(float) * 4;
         dat.vertexOffset = 0;
 
-        p.model = glm::translate(p.model, glm::vec3(0.1f,0.1f,0));
-        p.calc();
-
-        ren->update_buffer(mvpBuffer, &p, sizeof(p));
+        //ren->update_buffer(d1Buf, &d1, sizeof(d1));
         ren->submit_draw(dat);
 
         ////Clear screen
         //SDL_RenderClear(renderer);
 
-		for (const auto& p_ : world.players)
-		{
-			DrawData dat;
-			dat.pipeline = default_pipeline;
-			dat.texture = cookie2;
-			dat.uniformBuffer = mvpBuffer;
-			dat.vertexBuffer = quadVertexBuffer;
-			dat.vertexCount = 6;
-			dat.vertexStride = sizeof(float) * 4;
-			dat.vertexOffset = 0;
+		//for (const auto& p_ : world.players)
+		//{
+		//	DrawData dat;
+		//	dat.pipeline = default_pipeline;
+		//	dat.texture = cookie2;
+		//	dat.uniformBuffer = mvpBuffer;
+		//	dat.vertexBuffer = quadVertexBuffer;
+		//	dat.vertexCount = 6;
+		//	dat.vertexStride = sizeof(float) * 4;
+		//	dat.vertexOffset = 0;
 
-			p.model = glm::translate(p.model, glm::vec3(p_->GetX(), p_->GetY(), 0));
-			p.calc();
+		//	p.model = glm::translate(p.model, glm::vec3(p_->GetX(), p_->GetY(), 0));
+		//	p.calc();
 
-			ren->update_buffer(mvpBuffer, &p, sizeof(p));
-			ren->submit_draw(dat);
-		}
+		//	ren->update_buffer(mvpBuffer, &p, sizeof(p));
+		//	ren->submit_draw(dat);
+		//}
 
         glm::vec2 b_pos;
 

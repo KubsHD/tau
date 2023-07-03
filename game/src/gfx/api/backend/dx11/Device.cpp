@@ -253,6 +253,8 @@ spt::ref<Buffer> Device::create_buffer(BufferCreateDesc bcd)
 {
 	auto buf = spt::create_ref<Buffer>();
 
+	buf->desc = bcd;
+
 	// Vertex buffer desciption
 	D3D11_BUFFER_DESC bufferDesc{};
 
@@ -323,7 +325,9 @@ void Device::submit_draw(DrawData dat)
 	pDeferredContext->VSSetShader(dat.pipeline->vertexShader.Get(), 0, 0);
 	pDeferredContext->PSSetShader(dat.pipeline->pixelShader.Get(), 0, 0);
 
-	pDeferredContext->VSSetConstantBuffers(0, 1, dat.uniformBuffer->buf.GetAddressOf());
+	pDeferredContext->VSSetConstantBuffers(0, 1, dat.staticUniformBuffer->buf.GetAddressOf());
+	pDeferredContext->VSSetConstantBuffers(1, 1, dat.dynamicUniformBuffer->buf.GetAddressOf());
+
 	pDeferredContext->PSSetShaderResources(0, 1, dat.texture->srv.GetAddressOf());
 	pDeferredContext->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
 
