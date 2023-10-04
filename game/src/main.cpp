@@ -52,7 +52,7 @@ struct NetworkIdentity {
     Player* owned_player;
 } identity;
 
-spt::scope<Device> ren;
+spt::scope<Device> device;
 
 static float vertices[] = {
 	// pos      // tex
@@ -136,7 +136,7 @@ void net_update(int own_id, EnetClient* c)
 				spt::deserialize<new_player_packet>(rec.data);
 
             world.players.push_back(new Player(
-                load_and_create_texture(ren, std::string(np.avatar_texture_name.begin(), np.avatar_texture_name.end()) + ".png"),
+                load_and_create_texture(device, std::string(np.avatar_texture_name.begin(), np.avatar_texture_name.end()) + ".png"),
                 15, 20, np.pid));
             break;
         }
@@ -163,7 +163,7 @@ void net_connect(EnetClient* c)
     Packet welcome_packet = WRAP_PACKET(PacketType::NEW_PLAYER, new_player_packet("burgir"));
     c->send(welcome_packet);
 
-    identity.owned_player = new Player(load_and_create_texture(ren, (std::string("burgir") + ".png")), 15, 20, -1);
+    identity.owned_player = new Player(load_and_create_texture(device, (std::string("burgir") + ".png")), 15, 20, -1);
 	world.players.push_back(identity.owned_player);
 }
 
@@ -220,7 +220,7 @@ int main(int argc, char* argv[])
     //Create window
     window = spt::create_scope<Window>(SCREEN_WIDTH, SCREEN_HEIGHT, "Splatter");
     input = spt::create_scope<Input>();
-    ren = spt::create_scope<Device>(window->get_ptr());
+    device = spt::create_scope<Device>(window->get_ptr());
 
     //Create renderer
     //renderer = SDL_CreateRenderer(window->get_ptr(), -1, SDL_RENDERER_ACCELERATED);
@@ -243,15 +243,15 @@ int main(int argc, char* argv[])
 		1.0f, 0.0f, 1.0f, 0.0f
 	};
     
-    auto cookie2 = load_and_create_texture(ren, "cookie.png");
+    auto cookie2 = load_and_create_texture(device, "cookie.png");
 
 
-    auto default_pipeline = ren->create_pipeline({
+    auto default_pipeline = device->create_pipeline({
         .vertexShader = "shaders/sprite.hlsl",
         .pixelShader = "shaders/sprite.hlsl",
     });
 
-    auto quadVertexBuffer = ren->create_buffer({
+    auto quadVertexBuffer = device->create_buffer({
         .bindFlags = BindFlags::BIND_VERTEX_BUFFER,
         .byteWidth = sizeof(vertices2),
         .data = vertices2
@@ -263,7 +263,7 @@ int main(int argc, char* argv[])
         .projection = glm::ortho(0.0f, 600.0f, 400.0f, 0.0f, -1.0f, 1.0f),
     };
 
-	auto mvpBuffer = ren->create_buffer({
+	auto mvpBuffer = device->create_buffer({
 		.bindFlags = BindFlags::BIND_CONSTANT_BUFFER,
 		.byteWidth = sizeof(p),
 		.data = &p
@@ -277,17 +277,17 @@ int main(int argc, char* argv[])
         .model = glm::translate(glm::scale(glm::mat4(1.0f), glm::vec3(32, 32, 1)), glm::vec3(100.0f, 100.0f, 0.0f))
     };
 
-	auto d1Buf = ren->create_buffer({
+	auto d1Buf = device->create_buffer({
 		.bindFlags = BindFlags::BIND_CONSTANT_BUFFER,
 		.byteWidth = sizeof(d1),
 		.data = &d1
 	});
     
-	auto d2Buf = ren->create_buffer({
+	auto d2Buf = device->create_buffer({
 		.bindFlags = BindFlags::BIND_CONSTANT_BUFFER,
 		.byteWidth = sizeof(d2),
 		.data = &d2
-	});
+		});
     
 
     bool quit = false;
@@ -347,47 +347,49 @@ int main(int argc, char* argv[])
             }
         }
         else if (Input::key_down(SDL_SCANCODE_U))
-			net_connect(c);
-
-        ren->clear();
+        {
+            net_connect(c);
+        }
+        
+        device->clear();
 
 
         // texture drawing
         //ren->draw_texture(default_pipeline, quadVertexBuffer, cookie2, { 0, 0}, { 0, 0 });
 
-        DrawData dat;
-        dat.pipeline = default_pipeline;
-		dat.texture = cookie2;
-		dat.staticUniformBuffer = mvpBuffer;
-        dat.dynamicUniformBuffer = d1Buf;
-		dat.vertexBuffer = quadVertexBuffer;
-        dat.vertexCount = 6;
-		dat.vertexStride = sizeof(float) * 4;
-        dat.vertexOffset = 0;
+  //      DrawData dat;
+  //      dat.pipeline = default_pipeline;
+		//dat.texture = cookie2;
+		//dat.staticUniformBuffer = mvpBuffer;
+  //      dat.dynamicUniformBuffer = d1Buf;
+		//dat.vertexBuffer = quadVertexBuffer;
+  //      dat.vertexCount = 6;
+		//dat.vertexStride = sizeof(float) * 4;
+  //      dat.vertexOffset = 0;
 
-        //ren->update_buffer(d1Buf, &d1, sizeof(d1));
-        ren->submit_draw(dat);
+  //      //ren->update_buffer(d1Buf, &d1, sizeof(d1));
+  //      ren->submit_draw(dat);
 
         ////Clear screen
         //SDL_RenderClear(renderer);
 
-		//for (const auto& p_ : world.players)
-		//{
-		//	DrawData dat;
-		//	dat.pipeline = default_pipeline;
-		//	dat.texture = cookie2;
-		//	dat.uniformBuffer = mvpBuffer;
-		//	dat.vertexBuffer = quadVertexBuffer;
-		//	dat.vertexCount = 6;
-		//	dat.vertexStride = sizeof(float) * 4;
-		//	dat.vertexOffset = 0;
+		for (const auto& p_ : world.players)
+		{
+			DrawData dat;
+			dat.pipeline = default_pipeline;
+			dat.texture = cookie2;
+            dat.staticUniformBuffer = mvpBuffer;
+			dat.dynamicUniformBuffer = d1Buf;
+			dat.vertexBuffer = quadVertexBuffer;
+			dat.vertexCount = 6;
+			dat.vertexStride = sizeof(float) * 4;
+			dat.vertexOffset = 0;
 
-		//	p.model = glm::translate(p.model, glm::vec3(p_->GetX(), p_->GetY(), 0));
-		//	p.calc();
+			d1.model = glm::scale(glm::translate(glm::mat4(1.0f), glm::vec3(p_->get_transform().x, p_->get_transform().y, 0)), glm::vec3(32, 32, 1));
 
-		//	ren->update_buffer(mvpBuffer, &p, sizeof(p));
-		//	ren->submit_draw(dat);
-		//}
+			device->update_buffer(d1Buf, &d1, sizeof(d1));
+			device->submit_draw(dat);
+		}
 
         glm::vec2 b_pos;
 
@@ -414,8 +416,8 @@ int main(int argc, char* argv[])
         ////Update screen
         //SDL_RenderPresent(renderer);
 
-        ren->commit();
-        ren->swap();
+        device->commit();
+        device->swap();
 
         Uint64 end = SDL_GetPerformanceCounter();
 

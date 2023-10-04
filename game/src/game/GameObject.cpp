@@ -5,6 +5,9 @@ GameObject::GameObject(spt::ref<Texture> texture, int x, int y) : texture(textur
 {
     this->transform.x = x;
     this->transform.y = y;
+
+    this->transform.z = 0;
+
     if(texture == NULL)
         return;
     rect.h = texture->desc.size.y;
