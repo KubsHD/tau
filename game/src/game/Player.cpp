@@ -1,5 +1,5 @@
 #include "Player.h"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 void Player::Move(const Uint8 *keyStates) {
     if(keyStates[SDL_SCANCODE_UP])

@@ -1,11 +1,11 @@
 #include "Window.h"
 
-#include <SDL_video.h>
+#include <SDL3/SDL_video.h>
 #include "Macros.h"
 
 Window::Window(int width, int height, const char* title)
 {
-	m_ptr = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN);
+	m_ptr = SDL_CreateWindow(title, width, height, 0);
 
 	ASSERT_SDL(m_ptr)
 }

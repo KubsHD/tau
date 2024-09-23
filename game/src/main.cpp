@@ -6,7 +6,7 @@
 #include <steam/isteamnetworkingsockets.h>
 #include <steam/steamnetworkingsockets.h>
 #include <steam/isteamnetworkingutils.h>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <enet/enet.h>
 #include <vector>
 #include <stdint.h>
@@ -180,14 +180,14 @@ int main(int argc, char* argv[])
     spt::scope<Window> window;
     SDL_Texture* t1 = NULL;
 
-    ASSERT_SDL(SDL_Init(SDL_INIT_EVERYTHING) >= 0)
+    ASSERT_SDL(SDL_Init(0) >= 0)
 
     //Create window
     window = spt::create_scope<Window>(SCREEN_WIDTH, SCREEN_HEIGHT, "Splatter");
     input = spt::create_scope<Input>();
 
     //Create renderer
-    renderer = SDL_CreateRenderer(window->get_ptr(), -1, SDL_RENDERER_ACCELERATED);
+    renderer = SDL_CreateRenderer(window->get_ptr(), NULL);
     ASSERT_SDL(renderer != NULL)
 
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
@@ -209,16 +209,16 @@ int main(int argc, char* argv[])
         //Handle events
         while(SDL_PollEvent(&e) != 0)
         {
-            if(e.type == SDL_QUIT)
+            if(e.type == SDL_EVENT_QUIT)
             {
                 quit = true;
             }
-            else if(e.type == SDL_MOUSEBUTTONDOWN)
+            else if(e.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
             {
-                int x, y;
+                float x, y;
                 SDL_GetMouseState(&x,&y);
             }
-            else if (e.type == SDL_MOUSEWHEEL)
+            else if (e.type == SDL_EVENT_MOUSE_WHEEL)
             {
                 input->update_mouse_wheel(e.wheel);
             }
@@ -230,7 +230,8 @@ int main(int argc, char* argv[])
         {
             net_update(own_id, c);
 
-			const Uint8* currentKeyStates = SDL_GetKeyboardState(NULL);
+            Uint8* currentKeyStates;
+            SDL_GetKeyboardState((int*)currentKeyStates);
 
 			if (identity.owned_player->id != -1)
 			{

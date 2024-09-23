@@ -4,7 +4,7 @@
 #include <net/Packets.h>
 #include <iostream>
 #include <chrono>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <game/Bullet.h>
 
 struct PlayerData {

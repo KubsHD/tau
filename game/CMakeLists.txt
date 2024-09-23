@@ -1,14 +1,5 @@
 project(game)
 
-#SDL
-FetchContent_Declare(
-    SDL
-    GIT_REPOSITORY https://github.com/libsdl-org/SDL
-    GIT_TAG release-2.0.22
-)
-
-FetchContent_MakeAvailable(SDL)
-
 #cglm
 
 set(CGLM_SHARED FALSE)
@@ -35,14 +26,10 @@ set_source_files_properties(game_SRC PROPERTIES LANGUAGE CXX)
 
 # link libraries
 
-set(game_libs enet SDL2-static SDL2main glm GameNetworkingSockets::static protobuf::libprotoc)
+set(game_libs enet SDL3::SDL3 glm GameNetworkingSockets::static protobuf::libprotoc)
 
 if (WIN32)
 list(APPEND game_libs ws2_32 winmm)
-endif()
-
-if(NOT WINDOWS_STORE)
-    list(APPEND game_libs "SDL2main") # don't link SDL2main on xbox since it uses a c++ entrypoint
 endif()
 
 

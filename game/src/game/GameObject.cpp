@@ -1,5 +1,4 @@
 #include "GameObject.h"
-#include <SDL.h>
 
 GameObject::GameObject(Texture *texture, int x, int y) : texture(texture)
 {
@@ -15,10 +14,10 @@ void GameObject::Render(SDL_Renderer* renderer)
 {
     rect.x = (int)transform.x;
     rect.y = (int)transform.y;
-    SDL_RenderCopy(renderer, texture->texture, NULL, &rect);
+    SDL_RenderTexture(renderer, texture->texture, NULL, &rect);
 }
 
-SDL_Rect GameObject::GetRect()
+SDL_FRect GameObject::GetRect()
 {
     return rect;
 }

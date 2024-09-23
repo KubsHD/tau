@@ -1,6 +1,6 @@
 #pragma once
 
-#include <SDL_error.h>
+#include <SDL3/SDL_error.h>
 #include <cstdio>
 #include <cstdlib>
 

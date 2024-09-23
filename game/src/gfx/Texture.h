@@ -7,6 +7,8 @@
 struct SDL_Texture;
 struct SDL_Renderer;
 
+#include <SDL3/SDL_gpu.h>
+
 
 class Texture {
 public:

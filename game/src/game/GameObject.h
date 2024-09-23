@@ -4,7 +4,7 @@
 #define SPLATTER_GAMEOBJECT_H
 
 #include <gfx/Texture.h>
-#include "SDL_rect.h"
+#include <SDL3/SDL.h>
 #include <glm/fwd.hpp>
 
 
@@ -18,13 +18,13 @@ struct Transform {
 
 class GameObject {
 protected:
-    SDL_Rect rect;
+    SDL_FRect rect;
     Transform transform;
 public:
     Texture* texture;
     GameObject(Texture* texture, int x, int y);
     void Render(SDL_Renderer* renderer);
-    SDL_Rect GetRect();
+    SDL_FRect GetRect();
     float GetX() const;
     float GetY() const;
     void SetX(float value);

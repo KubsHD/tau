@@ -4,7 +4,7 @@
 
 #include "Texture.h"
 #include "lib/stb_image.h"
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 Texture::Texture(const char* path, SDL_Renderer *renderer)
 {
@@ -19,7 +19,7 @@ Texture::Texture(const char* path, SDL_Renderer *renderer)
         ERR("Couldn't load texture");
     }
 
-    int format = channels == STBI_rgb ? SDL_PIXELFORMAT_RGB24 : SDL_PIXELFORMAT_RGBA32;
+    SDL_PixelFormat format = channels == STBI_rgb ? SDL_PIXELFORMAT_RGB24 : SDL_PIXELFORMAT_RGBA32;
 
     texture = SDL_CreateTexture(renderer, format, SDL_TEXTUREACCESS_STATIC, width, height);
     SDL_UpdateTexture(texture, NULL, (const void*)data, width * channels);

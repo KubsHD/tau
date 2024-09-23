@@ -1,5 +1,5 @@
 #pragma once
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include <glm/glm.hpp>
 #include <core/types.h>
@@ -27,7 +27,7 @@ struct Mouse
 	/// <summary>
 	/// Mouse position
 	/// </summary>
-	glm::ivec2 pos;
+	glm::vec2 pos;
 
 	Uint32 buttons;
 };

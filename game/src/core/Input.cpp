@@ -1,6 +1,6 @@
 #include "input.h"
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <iostream>
 #include "Types.h"
 #include <cstring>
@@ -10,7 +10,7 @@ bool quit;
 static Uint8* key_state;
 static Uint8* last_key_state;
 
-static SDL_GameController* pad;
+static SDL_Gamepad* pad;
 
 static SDL_MouseWheelEvent wheel;
 
@@ -23,8 +23,8 @@ static Mouse mouse;
 
 void Input::update(SDL_Event& evt)
 {
-	std::memcpy(last_key_state, key_state, sizeof(Uint32) * SDL_NUM_SCANCODES);
-	std::memcpy(key_state, SDL_GetKeyboardState(NULL), sizeof(Uint32) * SDL_NUM_SCANCODES);
+	std::memcpy(last_key_state, key_state, sizeof(Uint32) * SDL_SCANCODE_COUNT);
+	std::memcpy(key_state, SDL_GetKeyboardState(NULL), sizeof(Uint32) * SDL_SCANCODE_COUNT);
 
 	// KEEP MOUSE TRAPPED INSIDE THE WINDOW
 	// SDL_SetRelativeMouseMode(SDL_TRUE);
@@ -102,9 +102,9 @@ Input::Input()
 	
 	pad == NULL;
 
-	key_state = (Uint8*)new Uint32[SDL_NUM_SCANCODES]();
-	last_key_state = (Uint8*)new Uint32[SDL_NUM_SCANCODES]();
-	std::memcpy(key_state, SDL_GetKeyboardState(NULL), sizeof(Uint32) * SDL_NUM_SCANCODES);
-	std::memset(last_key_state, 0, sizeof(Uint32) * SDL_NUM_SCANCODES);
+	key_state = (Uint8*)new Uint32[SDL_SCANCODE_COUNT]();
+	last_key_state = (Uint8*)new Uint32[SDL_SCANCODE_COUNT]();
+	std::memcpy(key_state, SDL_GetKeyboardState(NULL), sizeof(Uint32) * SDL_SCANCODE_COUNT);
+	std::memset(last_key_state, 0, sizeof(Uint32) * SDL_SCANCODE_COUNT);
 
 }
