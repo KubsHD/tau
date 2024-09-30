@@ -1,18 +1,5 @@
 project(game)
 
-#cglm
-
-set(CGLM_SHARED FALSE)
-set(CGLM_STATIC TRUE)
-set(CGLM_USE_C99 FALSE) # C11 
-
-FetchContent_Declare(
-    cglm
-    GIT_REPOSITORY https://github.com/recp/cglm
-    GIT_TAG master
-)
-
-FetchContent_MakeAvailable(cglm)
 
 set(BUILD_SHARED_LIBS FALSE)
 
@@ -26,7 +13,7 @@ set_source_files_properties(game_SRC PROPERTIES LANGUAGE CXX)
 
 # link libraries
 
-set(game_libs enet SDL3::SDL3 glm GameNetworkingSockets::static protobuf::libprotoc)
+set(game_libs enet SDL3::SDL3 glm)
 
 if (WIN32)
 list(APPEND game_libs ws2_32 winmm)
@@ -49,9 +36,6 @@ target_link_libraries(splatter PRIVATE ${game_libs})
 target_compile_definitions(splatter PRIVATE _CRT_SECURE_NO_WARNINGS=1)
 target_include_directories(splatter PUBLIC "${PROJECT_SOURCE_DIR}/src")
 target_include_directories(splatter PUBLIC "${PROJECT_SOURCE_DIR}/src/lib")
-target_include_directories(splatter PUBLIC "${PROJECT_SOURCE_DIR}/../deps/GameNetworkingSockets/GameNetworkingSockets/include")
-target_precompile_headers(splatter PRIVATE "<string>")
-
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   # In non-win32 debug build, debug_malloc is on by default

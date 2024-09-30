@@ -40,7 +40,7 @@ FetchContent_MakeAvailable(glm)
 include_directories("${PROJECT_BINARY_DIR}/_deps/enet-src/include")
 include_directories("${PROJECT_SOURCE_DIR}")
 
-add_subdirectory(deps/GameNetworkingSockets)
+#add_subdirectory(deps/GameNetworkingSockets)
 
 #add_subdirectory(relay)
 add_subdirectory(game)
