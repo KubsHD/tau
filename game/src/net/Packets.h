@@ -33,6 +33,7 @@ enum PacketType {
     BULLET_POSITION_UPDATE = 7,
     PLAYER_SPAWN = 8,
     CLIENT_RECV_ID = 9,
+	MAX_PACKET_TYPE
 };
 
 namespace spt

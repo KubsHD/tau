@@ -1,7 +1,7 @@
 #include "Player.h"
 #include <SDL3/SDL.h>
 
-void Player::Move(const Uint8 *keyStates) {
+void Player::Move(const bool *keyStates) {
     if(keyStates[SDL_SCANCODE_UP])
     {
         transform.y -= speed;

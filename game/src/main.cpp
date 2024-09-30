@@ -53,7 +53,20 @@ struct NetworkIdentity {
 SDL_Renderer* renderer = NULL;
 
 
+void handle_player_spawn_packet(void* packet_data)
+{
+	/*auto np = auto np =
+		spt::deserialize<new_player_packet>(rec.data);
 
+	world.players.push_back(new Player(
+		new Texture(Asset::get_real_path(std::string(np.avatar_texture_name.begin(), np.avatar_texture_name.end()) + ".png"),
+			renderer),
+		15, 20, np.pid));*/
+}
+void handle_player_connect_packet(void* packet_data)
+{
+
+}
 
 void net_update(int own_id, EnetClient* c)
 {
@@ -143,38 +156,34 @@ void net_connect(EnetClient* c)
 	world.players.push_back(identity.owned_player);
 }
 
+
+void(*packet_handlers[MAX_PACKET_TYPE])(void*) = {};
+
+#define REGISTER_PACKET_CALLBACK(packet_type, callback)      \
+    packet_handlers[packet_type] = callback                  
+
 int main(int argc, char* argv[])
 {
  //   SteamDatagramErrMsg msg;
 	//if (!GameNetworkingSockets_Init(nullptr, msg))
 	//	printf("GameNetworkingSockets_Init failed.  %s", msg);
 
+	REGISTER_PACKET_CALLBACK(PacketType::PLAYER_SPAWN, handle_player_spawn_packet);
+	REGISTER_PACKET_CALLBACK(PacketType::CLIENT_RECV_ID, handle_player_connect_packet);
+
     std::string nickname;
-    //std::cin >> nickname;
 
     int own_id = -1;
 
     uint32_t tick;
     
-
     //enet
     enet_initialize();
 
-#if WIN32
-
 	std::thread server_thread([]() {
-
-
 		spt::scope<Server> s = spt::create_scope<Server>();
 		s->Run();
 	});
-#else
-    if(strcmp(argv[1], "server") == 0)
-    {
-        spt::scope<Server> s = spt::create_scope<Server>();
-		s->Run();
-    }
-#endif
 
     spt::scope<Input> input;
     spt::scope<Window> window;
@@ -188,14 +197,12 @@ int main(int argc, char* argv[])
 
     //Create renderer
     renderer = SDL_CreateRenderer(window->get_ptr(), NULL);
+    
     ASSERT_SDL(renderer != NULL)
-
     SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 
     Texture* cookie = new Texture(Asset::get_real_path("cookie.png"), renderer);
-
 	EnetClient* c = new EnetClient();
-
 
     bool quit = false;
     SDL_Event e;
@@ -203,7 +210,6 @@ int main(int argc, char* argv[])
     std::cout << "[CLIENT] Entering main loop!" << std::endl;
     while(!quit)
     {
-
         Uint64 start = SDL_GetPerformanceCounter();
 
         //Handle events
@@ -230,12 +236,10 @@ int main(int argc, char* argv[])
         {
             net_update(own_id, c);
 
-            Uint8* currentKeyStates;
-            SDL_GetKeyboardState((int*)currentKeyStates);
+            const bool* currentKeyStates = SDL_GetKeyboardState(nullptr);
 
 			if (identity.owned_player->id != -1)
 			{
-
 				identity.owned_player->Move(currentKeyStates);
 
 				auto packet = create_player_position_packet(*identity.owned_player);
@@ -247,11 +251,6 @@ int main(int argc, char* argv[])
             {
                 world.bullets.push_back(new Bullet(Input::get_mouse_pos().x, Input::get_mouse_pos().y, cookie, identity.owned_player,
                     identity.player_id, world.local_bullet_idx++));
-                
-                // notify other players about new bullet spawn
-
-
-
             }
         }
         else if (Input::key_down(SDL_SCANCODE_U))
@@ -293,7 +292,6 @@ int main(int argc, char* argv[])
         Uint64 end = SDL_GetPerformanceCounter();
 
         float elapsedMS = (end - start) / (float)SDL_GetPerformanceFrequency() * 1000.0f;
-
         auto delay = floor(16.666f - elapsedMS);
 
         SDL_Delay(delay < 16.666f && delay > 0 ? delay : 16.666f);

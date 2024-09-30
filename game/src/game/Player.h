@@ -11,7 +11,7 @@ public:
     int id;
     Player(Texture* texture, int x, int y);
     Player(Texture* texture, int x, int y, int id);
-    void Move(const Uint8* keyStates);
+    void Move(const bool* keyStates);
 };
 
 
